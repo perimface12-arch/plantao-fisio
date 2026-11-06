@@ -1,5 +1,5 @@
 // Cache simples: abre offline e busca atualização quando há rede.
-const CACHE = "plantao-fisio-v2";
+const CACHE = "plantao-fisio-v3";
 const FILES = ["./", "index.html", "cases.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-180.png"];
 
 self.addEventListener("install", e => {
