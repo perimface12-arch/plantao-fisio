@@ -481,8 +481,8 @@ function avaliarLocal(caso, resposta) {
   const acertos = [], faltou = [];
   caso.pontos.forEach(p => (p.k.some(k => termHit(ws, txt, k)) ? acertos : faltou).push(p.t));
   const n = acertos.length, min = caso.minimo, tot = caso.pontos.length;
-  const alvoOk = Math.max(2, min - 1);                                 // tolerância: um ponto a menos que o mínimo
-  const nota = Math.min(100, Math.round(n / Math.max(alvoOk, 1) * 70 + (n > alvoOk ? (n - alvoOk) / Math.max(1, tot - alvoOk) * 30 : 0)));
+  const alvoOk = Math.max(2, min - 2);                                 // tolerância: dois pontos a menos que o mínimo
+  const nota = n >= alvoOk ? Math.min(100, 75 + Math.round((n - alvoOk) / Math.max(1, tot - alvoOk) * 25)) : Math.round(n / alvoOk * 65);
   const veredito = n >= alvoOk ? "correta" : n >= 1 ? "parcial" : "incorreta";
   const fb = veredito === "correta"
     ? `Correta. O essencial do raciocínio está na sua resposta.` + (faltou.length ? " Abaixo, o que deixaria a resposta ainda mais completa." : "")
@@ -859,9 +859,11 @@ let evalCtl = null;
 async function enviar() {
   STT.stop(); TTS.stop();
   const j = J.find(x => x.id === view.jid), c = j.casos[view.i];
-  const resposta = $("#txt").value.trim();
-  if (resposta.length < 8) { toast("Responda com um pouco mais de detalhe"); return; }
-  view.resposta = resposta; view.tentativas = (view.tentativas || 0) + 1;
+  const nova = $("#txt").value.trim();
+  if (nova.length < 8) { toast("Responda com um pouco mais de detalhe"); return; }
+  // na pergunta extra, avalia a resposta original + o complemento juntos
+  const resposta = view.extra ? `${view.extra.base}\n\nComplemento após pergunta extra sobre "${view.extra.ponto}": ${nova}` : nova;
+  view.resposta = nova; if (!view.extra) view.tentativas = (view.tentativas || 0) + 1;
   openSheet(`<div class="thinking"><svg class="ecgload" viewBox="0 0 90 30"><path d="M0 15h25l5-10 6 20 6-14 4 4h44" fill="none" stroke="#3CD3F0" stroke-width="2"><animate attributeName="stroke-dasharray" values="0 200;200 0" dur="1.2s" repeatCount="indefinite"/></path></svg><span>${S.cfg.apiKey ? "A preceptora está avaliando sua resposta…" : "Conferindo com o gabarito…"}</span></div>`, false);
   let r;
   if (S.cfg.apiKey) {
@@ -869,11 +871,34 @@ async function enviar() {
     try { r = await avaliarIA(c, j, resposta, evalCtl.signal); }
     catch (e) {
       if (e.name === "AbortError") return;
-      r = avaliarLocal(c, resposta);
+      r = avaliarLocal(c, view.extra ? view.extra.base + " " + nova : resposta);
       r.aviso = e.status === 401 ? "Chave da IA inválida. Corrigido pelo gabarito local." : "A IA não respondeu (" + (e.message || "erro") + "). Corrigido pelo gabarito local.";
     }
-  } else { await new Promise(res => setTimeout(res, 700)); r = avaliarLocal(c, resposta); }
+  } else { await new Promise(res => setTimeout(res, 700)); r = avaliarLocal(c, view.extra ? view.extra.base + " " + nova : resposta); }
+  // quase certa e ainda sem pergunta extra: dá mais uma chance focada no que faltou
+  if (r.veredito !== "correta" && !view.extra && !view.revisao && r.faltou.length) { perguntaExtra(j, c, r, resposta); return; }
+  if (view.extra) { view.extra = null; view.extraFeita = true; }
   mostrarResultado(j, c, r);
+}
+function perguntaExtra(j, c, r, base) {
+  const ponto = r.faltou[0];
+  openSheet(`<span class="label" style="color:var(--warn)">Pergunta extra · sem perder vida</span>
+    <h2>Quase lá! Complete o raciocínio</h2>
+    ${r.sintese ? `<div class="gab"><span class="label">O que entendi</span><p>${esc(r.sintese)}</p></div>` : ""}
+    ${r.acertos.length ? `<div class="list"><span class="label">Você já acertou</span>${r.acertos.map(t => `<div class="li">${ICON.check("#58E08A")}<span>${esc(t)}</span></div>`).join("")}</div>` : ""}
+    <div class="ask">${SMALL.q}E sobre isto: ${esc(ponto)}? O que você faria ou avaliaria?</div>
+    <p class="note">Responda só esse ponto. Vou somar com o que você já falou.</p>
+    <div class="actions"><button class="btn primary" id="ex-go">${ICON.mic}Responder pergunta extra</button>
+    <button class="btn ghost" style="flex:1" id="ex-skip">Ver correção agora</button></div>`, false);
+  TTS.speak(`Quase lá. E sobre isto: ${ponto}? O que você faria?`);
+  $("#ex-go").onclick = () => {
+    closeSheet(); view.extra = { base, ponto }; view.resposta = ""; STT.reset("");
+    renderCaso();
+    const a = $("#answer"); a.hidden = false;
+    a.insertAdjacentHTML("afterbegin", `<div class="hint" style="border-color:rgba(255,181,71,.45)">${SMALL.q}<span><b>Pergunta extra:</b> ${esc(ponto)}?</span></div>`);
+    a.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
+  $("#ex-skip").onclick = () => { closeSheet(true); mostrarResultado(j, c, r); };
 }
 
 function mostrarResultado(j, c, r) {
@@ -930,7 +955,7 @@ function mostrarResultado(j, c, r) {
   $("#a-ouvir").onclick = () => TTS.speaking ? TTS.stop() : TTS.speak(r.feedback);
   if (ok) { confetti(); novos.forEach((b, k) => setTimeout(() => toast("Conquista: " + b.nome), 900 + k * 1600)); }
   const nx = $("#a-next"); if (nx) nx.onclick = () => { closeSheet(); avancar(j); };
-  const rt = $("#a-retry"); if (rt) rt.onclick = () => { closeSheet(); view.resposta = ""; STT.reset(""); renderCaso(); };
+  const rt = $("#a-retry"); if (rt) rt.onclick = () => { closeSheet(); view.resposta = ""; view.extra = null; STT.reset(""); renderCaso(); };
   const gb = $("#a-gab"); if (gb) gb.onclick = () => { $("#gabwrap").hidden = false; gb.style.display = "none"; $("#a-skip").style.display = ""; TTS.say(`${j.id}-${view.i}-gabarito`); };
   const sk = $("#a-skip"); if (sk) sk.onclick = () => { closeSheet(); avancar(j, true); };
   const ov = $("#a-over"); if (ov) ov.onclick = () => { closeSheet(); go({ name: "gameover", jid: j.id }); };
