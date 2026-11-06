@@ -425,3 +425,51 @@ window.JORNADAS = [
     ]
   }
 ];
+
+/* Texto para narração: troca siglas e símbolos pelo que se fala em voz alta. */
+window.FALAR = function (t) {
+  const R = [
+    [/PaO₂\/FiO₂/g, "relação P sobre F"], [/P\/F/g, "P sobre F"],
+    [/mL\/cmH₂O/g, "mililitros por centímetro de água"], [/cmH₂O/g, "centímetros de água"],
+    [/mL\/kg/g, "mililitros por quilo"], [/mmHg/g, "milímetros de mercúrio"], [/mEq\/L/g, "miliequivalentes por litro"],
+    [/L\/min/g, "litros por minuto"], [/PImáx/g, "P I máxima"], [/SpO₂/g, "saturação"], [/FiO₂/g, "fração inspirada de oxigênio"],
+    [/PaCO₂/g, "P A C O 2"], [/PaO₂/g, "P A O 2"], [/HCO₃/g, "bicarbonato"], [/CO₂/g, "gás carbônico"], [/O₂/g, "oxigênio"],
+    [/\bTREs\b/g, "testes de respiração espontânea"], [/\bTRE\b/g, "teste de respiração espontânea"],
+    [/\bPSV\b/g, "P S V"], [/\bVCV\b/g, "V C V"], [/\bPCV\b/g, "P C V"], [/\bVC\b/g, "volume corrente"], [/\bFR\b/g, "frequência respiratória"],
+    [/\bFC\b/g, "frequência cardíaca"], [/\bPAS\b/g, "pressão sistólica"], [/\bPAD\b/g, "pressão diastólica"], [/\bMRC\b/g, "M R C"],
+    [/\bUTI\b/g, "U T I"], [/\bAVC\b/g, "A V C"], [/\bAA\b/g, "ar ambiente"], [/\bPOI\b/g, "pós-operatório imediato"],
+    [/(\d)\s?[–-]\s?(\d)/g, "$1 a $2"], [/≥/g, " maior ou igual a "], [/≤/g, " menor ou igual a "], [/</g, " menor que "], [/>/g, " maior que "],
+    [/×/g, " vezes "], [/−\s?/g, "menos "], [/~/g, "cerca de "], [/(\d):(\d)/g, "$1 para $2"], [/(\d+)\/(\d+)/g, "$1 por $2"],
+    [/\s+/g, " "]
+  ];
+  let s = String(t);
+  R.forEach(([a, b]) => { s = s.replace(a, b); });
+  return s.trim();
+};
+
+/* Textos fixos com áudio gravado. */
+window.FALAS_FIXAS = {
+  "fx-correta": "Correta! Mandou muito bem.",
+  "fx-parcial": "Quase lá. Você está no caminho certo.",
+  "fx-incorreta": "Ainda não. Vamos rever esse raciocínio juntas.",
+  "fx-fim": "Parabéns! Jornada concluída. Plantão encerrado com sucesso.",
+  "fx-gameover": "Plantão interrompido. Revise as respostas-modelo e tente de novo.",
+  "fx-teste": "Oi! Essa é a voz que vai narrar os seus casos no plantão."
+};
+
+/* Roteiro de narração de cada item (mesmos ids usados pelos áudios gravados). */
+window.ROTEIRO = function () {
+  const out = {};
+  window.JORNADAS.forEach(j => {
+    out[`${j.id}-briefing`] = `${j.titulo}. ${j.problema}`;
+    j.casos.forEach((c, i) => {
+      const v = c.vitais;
+      out[`${j.id}-${i}-caso`] = `${c.leito}. ${c.paciente}. No monitor: frequência cardíaca ${v.FC}, saturação ${v.SpO2}, frequência respiratória ${v.FR}, pressão ${v.PA}. ${v.extra}. ${c.situacao} A pergunta é: ${c.pergunta}`;
+      out[`${j.id}-${i}-dica`] = `Dica. ${c.dica}`;
+      out[`${j.id}-${i}-gabarito`] = `Resposta-modelo. ${c.gabarito}`;
+    });
+  });
+  Object.assign(out, window.FALAS_FIXAS);
+  Object.keys(out).forEach(k => { out[k] = window.FALAR(out[k]); });
+  return out;
+};

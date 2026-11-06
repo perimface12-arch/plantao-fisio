@@ -227,7 +227,7 @@ const RANKS = [
 /* ---------- estado ---------- */
 const KEY = "plantao-fisio-v1";
 const blank = () => ({ nome: "", xp: 0, acertos: 0, deprimeira: 0, comboMax: 0, badges: [], prog: {}, hearts: {}, concluidas: {}, perdeuVida: {},
-  cfg: { apiKey: "", model: "claude-sonnet-5-5", rate: 1, voice: "", autoVoz: true } });
+  cfg: { apiKey: "", model: "claude-sonnet-5-5", rate: 1, voice: "", autoVoz: true, vozGravada: true } });
 let S;
 try { S = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || "{}")); S.cfg = Object.assign(blank().cfg, S.cfg || {}); } catch (e) { S = blank(); }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
@@ -245,19 +245,41 @@ const rankOf = xp => { let r = RANKS[0], next = null; for (let i = 0; i < RANKS.
 const heartsOf = id => S.hearts[id] ?? 3;
 
 /* ---------- voz: narração ---------- */
+// Áudios gravados com voz neural (pasta audio/, gerados pelo GitHub Actions).
+// Quando não houver gravação, usa a melhor voz em português do aparelho.
+let AUDIOS = {};
+fetch("audio/index.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(d => { if (d && d.arquivos) AUDIOS = d.arquivos; }).catch(() => {});
+const ROT = window.ROTEIRO();
 const TTS = {
   ok: "speechSynthesis" in window,
-  speaking: false, queue: [], onEnd: null,
+  speaking: false, queue: [], onEnd: null, audio: null,
+  voices() { return this.ok ? speechSynthesis.getVoices().filter(v => /^pt(-|_)?BR/i.test(v.lang) || /portugu[eê]s.*brasil/i.test(v.name)) : []; },
   voice() {
-    const vs = speechSynthesis.getVoices().filter(v => /^pt(-|_)?BR/i.test(v.lang) || /portugu[eê]s.*brasil/i.test(v.name));
     if (S.cfg.voice) { const v = speechSynthesis.getVoices().find(v => v.name === S.cfg.voice); if (v) return v; }
-    return vs.find(v => /google/i.test(v.name)) || vs.find(v => /luciana|francisca|thalita|maria/i.test(v.name)) || vs[0] || null;
+    const vs = this.voices();
+    const score = v => (/natural|neural|online/i.test(v.name) ? 40 : 0) + (/premium|aprimorad|enhanced/i.test(v.name) ? 30 : 0) +
+      (/google/i.test(v.name) ? 20 : 0) + (/francisca|thalita|luciana/i.test(v.name) ? 10 : 0) + (v.localService ? 0 : 5);
+    return vs.sort((a, b) => score(b) - score(a))[0] || null;
   },
-  speak(text, onEnd) {
-    if (!this.ok) return;
+  // id: chave do roteiro gravado; text: texto livre (feedback da IA)
+  say(id, text, onEnd) {
     this.stop();
-    const parts = String(text).replace(/₂/g, "2").replace(/cmH2O/g, "centímetros de água").replace(/SpO2/g, "saturação").replace(/FiO2/g, "F i O 2")
-      .match(/[^.!?;:]+[.!?;:]?/g) || [text];
+    const file = id && AUDIOS[id];
+    if (file && S.cfg.vozGravada !== false) {
+      const a = new Audio("audio/" + file);
+      a.playbackRate = S.cfg.rate || 1;
+      a.onended = () => { if (this.audio === a) { this.audio = null; this.speaking = false; onEnd && onEnd(); } };
+      a.onerror = () => { if (this.audio === a) { this.audio = null; this._tts(text || ROT[id], onEnd); } };
+      this.audio = a; this.speaking = true;
+      a.play().catch(() => { if (this.audio === a) { this.audio = null; this._tts(text || ROT[id], onEnd); } });
+      return;
+    }
+    this._tts(text || ROT[id] || "", onEnd);
+  },
+  speak(text, onEnd) { this.say(null, text, onEnd); },
+  _tts(text, onEnd) {
+    if (!this.ok || !text) { onEnd && onEnd(); return; }
+    const parts = window.FALAR(text).match(/[^.!?;:]+[.!?;:]?/g) || [text];
     this.queue = parts.map(p => p.trim()).filter(Boolean);
     this.onEnd = onEnd || null; this.speaking = true; this._next();
   },
@@ -269,7 +291,11 @@ const TTS = {
     u.onerror = () => { if (this.speaking) this._next(); };
     speechSynthesis.speak(u);
   },
-  stop() { this.speaking = false; this.queue = []; this.onEnd = null; try { speechSynthesis.cancel(); } catch (e) {} }
+  stop() {
+    this.speaking = false; this.queue = []; this.onEnd = null;
+    if (this.audio) { const a = this.audio; this.audio = null; try { a.pause(); } catch (e) {} }
+    try { this.ok && speechSynthesis.cancel(); } catch (e) {}
+  }
 };
 if (TTS.ok) speechSynthesis.onvoiceschanged = () => {};
 
@@ -306,30 +332,58 @@ const STT = {
 };
 
 /* ---------- avaliação ---------- */
-function termHit(text, term) {
+// Correção local (sem IA): procura cada ponto-chave pelo sentido aproximado,
+// aceitando variações de palavra, ordem diferente e erros de transcrição de voz.
+const STOP = new Set("de da do das dos a o e em no na nos nas um uma para por com que se ao aos as os eu ele ela".split(" "));
+const toks = s => norm(s).replace(/(\d)[,.](\d)/g, "$1§$2").replace(/[^a-z0-9§]+/g, " ").replace(/§/g, ",").trim().split(" ").filter(Boolean);
+function lev(a, b) {
+  const m = a.length, n = b.length; if (Math.abs(m - n) > 2) return 9;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+  return prev[n];
+}
+function wordHit(w, t) {
+  if (w === t) return true;
+  if (/^\d/.test(t)) return w.replace(/,/g, ".") === t.replace(/,/g, ".");
+  if (t.length <= 3) return false;
+  if (w.startsWith(t)) return true;                                   // radical: "atelect" → "atelectasia"
+  const raiz = t.slice(0, Math.max(4, t.length - 2));
+  if (t.length >= 5 && w.startsWith(raiz)) return true;               // flexão: "reduzir" → "reduzindo"
+  if (t.length >= 6 && lev(w.slice(0, t.length), t) <= 1) return true; // erro de transcrição
+  return false;
+}
+function termHit(ws, txt, term) {
   const t = norm(term);
-  if (t.length <= 3 || /^[\d,.%:/-]+$/.test(t)) {
-    const re = new RegExp("(^|[^a-z0-9])" + t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "($|[^a-z0-9])");
-    return re.test(text);
-  }
-  return text.includes(t);
+  if (t.length > 4 && txt.includes(t)) return true;
+  const alvo = toks(t).filter(x => !STOP.has(x));
+  if (!alvo.length) return false;
+  return alvo.every(a => ws.some(w => wordHit(w, a)));                // todas as palavras, em qualquer ordem
 }
 function avaliarLocal(caso, resposta) {
-  const txt = norm(resposta);
+  const txt = norm(resposta), ws = toks(resposta);
   const acertos = [], faltou = [];
-  caso.pontos.forEach(p => (p.k.some(k => termHit(txt, k)) ? acertos : faltou).push(p.t));
-  const n = acertos.length, min = caso.minimo;
-  const nota = Math.round(Math.min(1, n / caso.pontos.length) * 100);
-  const veredito = n >= min ? "correta" : n >= min - 1 && n > 0 ? "parcial" : "incorreta";
+  caso.pontos.forEach(p => (p.k.some(k => termHit(ws, txt, k)) ? acertos : faltou).push(p.t));
+  const n = acertos.length, min = caso.minimo, tot = caso.pontos.length;
+  const alvoOk = Math.max(2, min - 1);                                 // tolerância: um ponto a menos que o mínimo
+  const nota = Math.min(100, Math.round(n / Math.max(alvoOk, 1) * 70 + (n > alvoOk ? (n - alvoOk) / Math.max(1, tot - alvoOk) * 30 : 0)));
+  const veredito = n >= alvoOk ? "correta" : n >= 1 ? "parcial" : "incorreta";
   const fb = veredito === "correta"
-    ? `Resposta correta. Você cobriu ${n} dos ${caso.pontos.length} pontos-chave.` + (faltou.length ? " Para ficar completa, vale incluir o que aparece abaixo." : "")
+    ? `Correta. O essencial do raciocínio está na sua resposta.` + (faltou.length ? " Abaixo, o que deixaria a resposta ainda mais completa." : "")
     : veredito === "parcial"
-      ? `Quase lá. Você trouxe ${n} pontos-chave, mas faltou o que está listado abaixo. Reveja o raciocínio e tente de novo.`
-      : `Ainda não. Faltaram pontos essenciais do raciocínio. Veja abaixo o que era esperado e confira o gabarito.`;
-  return { veredito, nota, acertos, faltou, erros: [], feedback: fb, fonte: "gabarito" };
+      ? `Você está no caminho certo, mas faltou parte do raciocínio central. Veja o que faltou e tente de novo. Se você falou isso com outras palavras, toque em "Acho que acertei".`
+      : `Não encontrei os pontos principais na sua resposta. Confira a resposta-modelo. Se você explicou de outro jeito, toque em "Acho que acertei".`;
+  return { veredito, nota, sintese: "", acertos, faltou, erros: [], feedback: fb, fonte: "gabarito" };
 }
+
 async function avaliarIA(caso, jornada, resposta, signal) {
-  const prompt = `Você é preceptora de fisioterapia hospitalar e intensiva, avaliando a resposta oral de uma fisioterapeuta em um simulado de casos clínicos. A resposta foi transcrita por reconhecimento de voz: ignore erros de transcrição, pontuação e números escritos por extenso, e interprete a intenção clínica.
+  const prompt = `Você é uma preceptora experiente de fisioterapia hospitalar e intensiva. Uma fisioterapeuta respondeu EM VOZ ALTA a um caso clínico de simulado, e a fala foi transcrita automaticamente.
+
+Como ler a resposta:
+- É fala espontânea: tem hesitação, repetição, ordem livre, frases soltas, raciocínio em voz alta e erros de transcrição (palavras trocadas por outras parecidas, números por extenso, siglas grafadas errado). Reconstrua o que ela QUIS dizer antes de avaliar.
+- Primeiro sintetize, com suas palavras, o raciocínio clínico dela em 1 ou 2 frases.
+- Dê crédito a um ponto quando a ideia aparecer em QUALQUER parte da fala, inclusive no meio de uma explicação, de forma implícita, com outros termos ou como justificativa de outra conduta. Exemplo: se ela diz "vou deixar a saturação entre 88 e 92 porque ele retém CO2", ela acertou o alvo de saturação E o risco de hipercapnia.
+- Não exija terminologia exata, a mesma ordem, nem todos os pontos da lista. A lista é um guia da banca, não um checklist literal.
+- Condutas corretas e seguras que não estão na lista contam a favor.
 
 NÍVEL: ${jornada.nivel} (${jornada.titulo})
 PACIENTE: ${caso.paciente} — ${caso.leito}
@@ -337,39 +391,37 @@ SINAIS VITAIS: FC ${caso.vitais.FC}, SpO2 ${caso.vitais.SpO2}%, FR ${caso.vitais
 SITUAÇÃO: ${caso.situacao}
 PERGUNTA: ${caso.pergunta}
 
-PONTOS-CHAVE ESPERADOS (${caso.pontos.length}; mínimo para considerar correta: ${caso.minimo}):
+PONTOS-CHAVE QUE A BANCA ESPERA (${caso.pontos.length}; referência de mínimo: ${caso.minimo}):
 ${caso.pontos.map((p, i) => `${i + 1}. ${p.t}`).join("\n")}
 
 RESPOSTA-MODELO DA BANCA:
 ${caso.gabarito}
 
-RESPOSTA DA FISIOTERAPEUTA:
+FALA TRANSCRITA DA FISIOTERAPEUTA:
 """${resposta}"""
 
-Critérios:
-- Avalie o raciocínio clínico, não o estilo. Aceite sinônimos e formas equivalentes.
-- Condutas corretas e seguras que não estão na lista também contam a favor.
-- Qualquer conduta que coloque o paciente em risco é erro grave e torna a resposta "incorreta".
-- "correta": cobre pelo menos o mínimo de pontos-chave e não tem erro grave (nota 70–100).
-- "parcial": raciocínio no caminho certo mas incompleto (nota 50–69).
-- "incorreta": falta o essencial ou há erro grave (nota 0–49).
-- Não invente dados que não estão no caso.
+Como decidir:
+- "correta" (nota 70–100): o raciocínio central e a conduta principal estão certos e seguros, mesmo que incompletos ou mal formulados. Na dúvida entre correta e parcial, e sem erro de segurança, escolha correta.
+- "parcial" (nota 45–69): está no caminho, mas falta o núcleo do raciocínio ou a conduta principal.
+- "incorreta" (nota 0–44): o essencial não aparece, ou há conduta que coloca o paciente em risco.
+- Não invente dados que não estão no caso e não atribua a ela algo que ela não disse.
 
-Responda SOMENTE com um objeto JSON, sem texto fora dele, neste formato:
-{"veredito":"correta|parcial|incorreta","nota":0,"acertos":["ponto que ela acertou, curto"],"faltou":["ponto que faltou, curto"],"erros":["afirmação errada ou perigosa, curta"],"feedback":"2 a 4 frases em segunda pessoa (você), tom de preceptora direta e encorajadora, explicando por que está certo ou o que precisa corrigir e por quê"}`;
+Responda SOMENTE com um objeto JSON:
+{"sintese":"o que você entendeu da resposta dela, 1-2 frases","veredito":"correta|parcial|incorreta","nota":0,"acertos":["ponto que ela acertou, curto"],"faltou":["só o que realmente faltou, curto"],"erros":["só afirmação errada ou perigosa"],"feedback":"2 a 4 frases em segunda pessoa (você), tom de preceptora direta e encorajadora: comece pelo que ela acertou e depois diga o que ajustar e por quê"}`;
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", signal,
     headers: { "content-type": "application/json", "x-api-key": S.cfg.apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: S.cfg.model, max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
+    body: JSON.stringify({ model: S.cfg.model, max_tokens: 1200, messages: [{ role: "user", content: prompt }] })
   });
   if (!res.ok) { let m = ""; try { m = (await res.json()).error.message; } catch (e) {} const err = new Error(m || "HTTP " + res.status); err.status = res.status; throw err; }
   const data = await res.json();
   const text = (data.content || []).map(c => c.text || "").join("");
   const a = text.indexOf("{"), b = text.lastIndexOf("}");
   const o = JSON.parse(text.slice(a, b + 1));
-  o.veredito = ["correta", "parcial", "incorreta"].includes(o.veredito) ? o.veredito : (o.nota >= 70 ? "correta" : o.nota >= 50 ? "parcial" : "incorreta");
   o.nota = Math.max(0, Math.min(100, Number(o.nota) || 0));
+  o.veredito = ["correta", "parcial", "incorreta"].includes(o.veredito) ? o.veredito : (o.nota >= 70 ? "correta" : o.nota >= 45 ? "parcial" : "incorreta");
   ["acertos", "faltou", "erros"].forEach(k => { if (!Array.isArray(o[k])) o[k] = []; });
+  o.sintese = typeof o.sintese === "string" ? o.sintese : "";
   o.fonte = "ia";
   return o;
 }
@@ -469,7 +521,7 @@ function renderJornada() {
   ob.onclick = () => {
     if (TTS.speaking) { TTS.stop(); ob.setAttribute("aria-pressed", "false"); return; }
     ob.setAttribute("aria-pressed", "true");
-    TTS.speak(`${j.titulo}. ${j.problema}`, () => ob.setAttribute("aria-pressed", "false"));
+    TTS.say(`${j.id}-briefing`, null, () => ob.setAttribute("aria-pressed", "false"));
   };
   const start = () => go({ name: "caso", jid: j.id, i: Math.min(p, j.casos.length - 1), dica: false, tentativas: 0 });
   $("#start").onclick = start;
@@ -560,9 +612,9 @@ function renderCaso() {
   startWave($("#wave"), vit.FC, vit.SpO2);
   $("#back").onclick = () => go({ name: "jornada", jid: j.id });
   const ob = $("#ouvir");
-  const narrar = () => { ob.setAttribute("aria-pressed", "true"); TTS.speak(`${c.paciente}. ${c.situacao} Pergunta: ${c.pergunta}`, () => ob.setAttribute("aria-pressed", "false")); };
+  const narrar = () => { ob.setAttribute("aria-pressed", "true"); TTS.say(`${j.id}-${view.i}-caso`, null, () => ob.setAttribute("aria-pressed", "false")); };
   ob.onclick = () => { if (TTS.speaking) { TTS.stop(); ob.setAttribute("aria-pressed", "false"); } else narrar(); };
-  const dk = $("#dica"); if (dk) dk.onclick = () => { view.dica = true; view.resposta = $("#txt").value; renderCaso(); TTS.speak("Dica. " + c.dica); };
+  const dk = $("#dica"); if (dk) dk.onclick = () => { view.dica = true; view.resposta = $("#txt").value; renderCaso(); TTS.say(`${j.id}-${view.i}-dica`); };
   $("#digitar").onclick = () => { $("#answer").hidden = false; $("#txt").focus(); dockCaso(); };
   $("#txt").oninput = e => { view.resposta = e.target.value; dockCaso(); };
   dockCaso();
@@ -628,11 +680,11 @@ function mostrarResultado(j, c, r) {
   if (!view.revisao) {
     if (ok) {
       combo++;
-      let mult = (view.dica ? .7 : 1) * (view.tentativas > 1 ? .75 : 1) * (S.concluidas[j.id] ? .25 : 1);
+      let mult = (view.dica ? .7 : 1) * (view.tentativas > 1 ? .75 : 1) * (S.concluidas[j.id] ? .25 : 1) * (r.fonte === "revisao" ? .8 : 1);
       const bonus = Math.min(.5, Math.max(0, combo - 1) * .1);
       ganho = Math.round(j.xp * mult * (1 + bonus) + (c.chefe ? 50 : 0));
       S.xp += ganho; S.acertos++; S.comboMax = Math.max(S.comboMax, combo);
-      if (view.tentativas === 1 && !view.dica) S.deprimeira++;
+      if (view.tentativas === 1 && !view.dica && r.fonte !== "revisao") S.deprimeira++;
       novos = unlock(["primeiro", combo >= 5 && "chamas", S.deprimeira >= 10 && "deprimeira"].filter(Boolean));
     } else {
       combo = 0;
@@ -651,29 +703,54 @@ function mostrarResultado(j, c, r) {
       </div>
     </div>
     ${r.aviso ? `<p class="note" style="color:var(--warn)">${esc(r.aviso)}</p>` : ""}
+    ${r.sintese ? `<div class="gab"><span class="label">O que entendi da sua resposta</span><p>${esc(r.sintese)}</p></div>` : ""}
     <p class="feedback">${esc(r.feedback)}</p>
     ${r.acertos.length ? `<div class="list"><span class="label">Você acertou</span>${li(r.acertos, ICON.check, "#58E08A")}</div>` : ""}
     ${r.faltou.length ? `<div class="list"><span class="label">Faltou</span>${li(r.faltou, ICON.minus, "#F4B13D")}</div>` : ""}
     ${r.erros.length ? `<div class="list"><span class="label">Corrija</span>${li(r.erros, ICON.x, "#FF6B6B")}</div>` : ""}
     <div id="gabwrap" ${ok ? "" : "hidden"}><div class="gab"><span class="label">Resposta-modelo</span><p>${esc(c.gabarito)}</p><span class="ref">Base: ${esc(c.ref)}</span></div></div>
-    <p class="note">${r.fonte === "ia" ? "Avaliado por IA a partir do gabarito do caso. Em dúvida, confirme no protocolo da sua instituição." : "Correção automática por pontos-chave. Ative a avaliação por IA nas configurações para uma correção mais fina."}</p>
+    <p class="note">${r.fonte === "revisao" ? "Você revisou a correção e confirmou o acerto." : r.fonte === "ia" ? "Avaliado por IA a partir do gabarito do caso. Em dúvida, confirme no protocolo da sua instituição." : "Correção automática por pontos-chave. Ative a avaliação por IA nas configurações para uma correção mais fina."}</p>
     <div class="actions">
       ${semVidas ? `<button class="btn primary" id="a-over">Ver resultado do plantão</button>`
         : ok ? `<button class="btn primary" id="a-next">${ICON.send}${view.revisao ? "Voltar à jornada" : view.i + 1 >= j.casos.length ? "Concluir jornada" : "Próximo caso"}</button>`
         : `<button class="btn primary" id="a-retry">${ICON.mic}Tentar de novo</button>
            <button class="btn ghost" style="flex:1" id="a-gab">Ver resposta-modelo</button>
            <button class="btn ghost" style="flex:1;display:none" id="a-skip">Seguir para o próximo (sem XP)</button>`}
+      ${!ok && !view.revisao ? `<button class="btn ghost" style="flex:1;border-color:var(--ok);color:var(--ok)" id="a-contest">${ICON.check("#58E08A")}Acho que acertei</button>` : ""}
       <button class="chipbtn" id="a-ouvir" style="justify-self:center">${ICON.speaker}<span>Ouvir feedback</span></button>
     </div>`, true);
   if (navigator.vibrate) navigator.vibrate(ok ? [20, 40, 20] : 120);
-  TTS.speak(`${title}. ${r.feedback}`);
-  $("#a-ouvir").onclick = () => TTS.speaking ? TTS.stop() : TTS.speak(`${title}. ${r.feedback}`);
+  TTS.say("fx-" + r.veredito);
+  $("#a-ouvir").onclick = () => TTS.speaking ? TTS.stop() : TTS.speak(r.feedback);
   if (ok) { confetti(); novos.forEach((b, k) => setTimeout(() => toast("Conquista: " + b.nome), 900 + k * 1600)); }
   const nx = $("#a-next"); if (nx) nx.onclick = () => { closeSheet(); avancar(j); };
   const rt = $("#a-retry"); if (rt) rt.onclick = () => { closeSheet(); view.resposta = ""; STT.reset(""); renderCaso(); };
-  const gb = $("#a-gab"); if (gb) gb.onclick = () => { $("#gabwrap").hidden = false; gb.style.display = "none"; $("#a-skip").style.display = ""; TTS.speak("Resposta-modelo. " + c.gabarito); };
+  const gb = $("#a-gab"); if (gb) gb.onclick = () => { $("#gabwrap").hidden = false; gb.style.display = "none"; $("#a-skip").style.display = ""; TTS.say(`${j.id}-${view.i}-gabarito`); };
   const sk = $("#a-skip"); if (sk) sk.onclick = () => { closeSheet(); avancar(j, true); };
   const ov = $("#a-over"); if (ov) ov.onclick = () => { closeSheet(); go({ name: "gameover", jid: j.id }); };
+  const ct = $("#a-contest"); if (ct) ct.onclick = () => revisarCorrecao(j, c, r, perdeu);
+}
+function revisarCorrecao(j, c, r, perdeu) {
+  TTS.stop();
+  openSheet(`<h2>Confira você mesma</h2>
+    <p class="muted">A correção automática pode não ter entendido a sua forma de explicar. Compare a sua fala com o que a banca esperava. Se você disse isso, mesmo com outras palavras, conta como acerto.</p>
+    <div class="gab"><span class="label">Sua resposta</span><p>${esc(view.resposta || "")}</p></div>
+    <div class="list"><span class="label">O que a banca esperava</span>${c.pontos.map(p => `<div class="li">${ICON.check("#3CD3F0")}<span>${esc(p.t)}</span></div>`).join("")}</div>
+    <div class="gab"><span class="label">Resposta-modelo</span><p>${esc(c.gabarito)}</p><span class="ref">Base: ${esc(c.ref)}</span></div>
+    <div class="actions">
+      <button class="btn primary" id="rv-sim">${ICON.check("#04252C")}Sim, eu falei isso</button>
+      <button class="btn ghost" style="flex:1" id="rv-nao">Não, vou tentar de novo</button>
+      <button class="chipbtn" id="rv-ouvir" style="justify-self:center">${ICON.speaker}<span>Ouvir resposta-modelo</span></button>
+    </div>`, false);
+  $("#rv-ouvir").onclick = () => TTS.speaking ? TTS.stop() : TTS.say(`${j.id}-${view.i}-gabarito`);
+  $("#rv-nao").onclick = () => { closeSheet(); if (heartsOf(j.id) <= 0) { go({ name: "gameover", jid: j.id }); return; } view.resposta = ""; STT.reset(""); renderCaso(); };
+  $("#rv-sim").onclick = () => {
+    if (perdeu) { S.hearts[j.id] = Math.min(3, heartsOf(j.id) + 1); save(); }
+    mostrarResultado(j, c, Object.assign({}, r, {
+      veredito: "correta", nota: Math.max(r.nota, 70), fonte: "revisao", aviso: "", sintese: r.sintese || "",
+      erros: [], faltou: [], feedback: "Acerto confirmado na revisão. Ouça a resposta-modelo para fixar a forma mais completa de explicar."
+    }));
+  };
 }
 function avancar(j, semXP) {
   if (view.revisao) { go({ name: "jornada", jid: j.id }); return; }
@@ -700,7 +777,7 @@ function renderFim() {
   setDock(prox ? `<button class="btn ghost" id="home" style="flex:0 0 auto">Início</button><button class="btn primary" id="next">${ICON.send}Próximo nível: ${prox.nivel}</button>` : `<button class="btn primary" id="home">Voltar ao início</button>`);
   $("#home").onclick = () => go({ name: "home" });
   const n = $("#next"); if (n) n.onclick = () => go({ name: "jornada", jid: prox.id });
-  confetti(true); TTS.speak(`Parabéns! Jornada ${j.titulo} concluída.`);
+  confetti(true); TTS.say("fx-fim");
 }
 function renderGameOver() {
   const j = J.find(x => x.id === view.jid);
@@ -711,6 +788,7 @@ function renderGameOver() {
     <p class="muted">Você chegou ao caso ${(S.prog[j.id] || 0) + 1} de ${j.casos.length}. O XP conquistado continua seu. Revise as respostas-modelo e recomece a jornada com 3 vidas.</p>
   </div></div>`;
   setDock(`<button class="btn ghost" id="home" style="flex:0 0 auto">Início</button><button class="btn primary" id="again">Recomeçar jornada</button>`);
+  TTS.say("fx-gameover");
   $("#home").onclick = () => { S.prog[j.id] = 0; S.hearts[j.id] = 3; S.perdeuVida[j.id] = false; save(); go({ name: "home" }); };
   $("#again").onclick = () => { S.prog[j.id] = 0; S.hearts[j.id] = 3; S.perdeuVida[j.id] = false; combo = 0; save(); go({ name: "jornada", jid: j.id }); };
 }
@@ -762,7 +840,8 @@ function openSettings() {
     <div class="field"><label class="label" for="s-model">Modelo</label>
       <select id="s-model"><option value="claude-sonnet-5-5">Sonnet (mais rigoroso)</option><option value="claude-haiku-5-5">Haiku (mais rápido)</option></select></div>
     <div class="field"><label class="label" for="s-voice">Voz da narração</label>
-      <select id="s-voice"><option value="">Automática (português)</option>${voices.map(v => `<option ${v.name === S.cfg.voice ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></div>
+      <select id="s-voice"><option value="__gravada" ${S.cfg.vozGravada !== false ? "selected" : ""}>Natural (voz gravada)</option><option value="" ${S.cfg.vozGravada === false && !S.cfg.voice ? "selected" : ""}>Do aparelho: automática</option>${voices.map(v => `<option value="${esc(v.name)}" ${S.cfg.vozGravada === false && v.name === S.cfg.voice ? "selected" : ""}>Do aparelho: ${esc(v.name)}</option>`).join("")}</select>
+      <span class="note">A voz gravada narra casos, dicas e respostas-modelo. O feedback da IA usa a voz do aparelho.</span></div>
     <div class="field"><label class="label" for="s-rate">Velocidade da voz</label>
       <select id="s-rate">${[[.85, "Calma"], [1, "Normal"], [1.15, "Rápida"], [1.3, "Muito rápida"]].map(([v, l]) => `<option value="${v}" ${S.cfg.rate == v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
     <div class="field"><label class="label" for="s-auto">Narrar caso automaticamente</label>
@@ -773,7 +852,8 @@ function openSettings() {
       <button class="btn ghost" style="flex:1;color:var(--bad)" id="s-reset">Zerar progresso</button>
     </div>`, "tap");
   $("#s-model").value = S.cfg.model;
-  $("#s-test").onclick = () => { S.cfg.voice = $("#s-voice").value; S.cfg.rate = +$("#s-rate").value; TTS.speak("Leito 3. Paciente de 64 anos, primeiro dia de pós-operatório."); };
+  const setVoz = () => { const v = $("#s-voice").value; S.cfg.vozGravada = v === "__gravada"; S.cfg.voice = v === "__gravada" ? "" : v; S.cfg.rate = +$("#s-rate").value; };
+  $("#s-test").onclick = () => { setVoz(); TTS.say("fx-teste"); };
   let armed = false;
   $("#s-reset").onclick = e => {
     if (!armed) { armed = true; e.currentTarget.textContent = "Toque de novo para confirmar"; return; }
@@ -782,7 +862,7 @@ function openSettings() {
   $("#s-save").onclick = () => {
     S.nome = $("#s-nome").value.trim().slice(0, 30);
     S.cfg.apiKey = $("#s-key").value.trim(); S.cfg.model = $("#s-model").value;
-    S.cfg.voice = $("#s-voice").value; S.cfg.rate = +$("#s-rate").value; S.cfg.autoVoz = $("#s-auto").value === "1";
+    setVoz(); S.cfg.autoVoz = $("#s-auto").value === "1";
     save(); closeSheet(); render(); toast(S.cfg.apiKey ? "Salvo · avaliação por IA ativa" : "Salvo");
   };
 }
