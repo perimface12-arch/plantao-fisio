@@ -457,6 +457,59 @@ window.FALAS_FIXAS = {
   "fx-teste": "Oi! Essa é a voz que vai narrar os seus casos no plantão."
 };
 
+/* Perguntas rápidas: intercorrências (com tempo) e rodadas Raio-X. c = índice da alternativa correta. */
+window.RAPIDAS = {
+  iniciante: [
+    { q: "Qual o alvo de saturação para um paciente DPOC retentor de CO₂?", o: ["88 a 92%", "94 a 98%", "85 a 88%", "Acima de 95%"], c: 0, e: "No retentor, mirar 88–92% evita piorar a hipercapnia." },
+    { q: "Cateter nasal a 3 L/min oferece FiO₂ aproximada de:", o: ["Cerca de 32%", "Cerca de 24%", "Cerca de 45%", "Cerca de 60%"], c: 0, e: "Regra prática: 21% + 3 a 4% por litro." },
+    { q: "Qual ruído adventício sugere secreção em vias aéreas de grande calibre?", o: ["Roncos", "Estertores finos", "Atrito pleural", "Estridor"], c: 0, e: "Roncos são graves e mudam com a tosse: secreção em vias maiores." },
+    { q: "Hipotensão ortostática é definida por queda de:", o: ["PAS ≥ 20 ou PAD ≥ 10 mmHg", "PAS ≥ 10 mmHg", "PAD ≥ 5 mmHg", "FC ≥ 10 bpm"], c: 0, e: "Queda de 20 na sistólica ou 10 na diastólica em até 3 minutos em pé." },
+    { q: "Paciente no pós-operatório com dor 9/10 recusa a fisioterapia. Primeiro passo:", o: ["Acionar a equipe para analgesia e voltar depois", "Fazer os exercícios mesmo assim", "Registrar recusa e não voltar", "Fazer só o incentivador"], c: 0, e: "Dor não controlada impede expansão e mobilização: analgesia primeiro." },
+    { q: "A principal vantagem da máscara de Venturi é:", o: ["FiO₂ precisa e constante", "Oferecer FiO₂ de 100%", "Maior umidificação", "Permitir comer com ela"], c: 0, e: "O sistema de alto fluxo com arrastamento de ar garante FiO₂ definida." },
+    { q: "Na deambulação a SpO₂ cai de 94 para 85% e não sobe. O que fazer?", o: ["Parar, sentar, ajustar O₂ e reavaliar", "Continuar mais devagar", "Aumentar o ritmo para terminar", "Ignorar, deve ser o sensor"], c: 0, e: "Dessaturação sustentada é critério de interrupção." },
+    { q: "O huffing é:", o: ["Expiração forçada com a glote aberta", "Tosse com a glote fechada", "Inspiração forçada máxima", "Apneia pós-inspiratória"], c: 0, e: "TEF/huffing mobiliza secreção com menos colapso dinâmico." },
+    { q: "Qual incentivador privilegia inspiração lenta e sustentada?", o: ["A volume", "A fluxo", "Os dois igualmente", "Nenhum deles"], c: 0, e: "O incentivador a volume favorece inspiração lenta e profunda." },
+    { q: "Qual achado indica aumento do trabalho respiratório?", o: ["Tiragem e musculatura acessória", "Fala frases completas", "FR de 14 com conforto", "SpO₂ 98% em ar ambiente"], c: 0, e: "Tiragem e uso de acessória são sinais de esforço." },
+    { q: "Contraindicação para drenagem postural com cabeça para baixo:", o: ["Hipertensão intracraniana", "Pneumonia", "DPOC estável", "Pós-operatório de joelho"], c: 0, e: "Trendelenburg eleva a pressão intracraniana." },
+    { q: "Pneumonia unilateral, respiração espontânea. Qual decúbito melhora a oxigenação?", o: ["Pulmão sadio para baixo", "Pulmão doente para baixo", "Supino reto", "Trendelenburg"], c: 0, e: "Com o pulmão sadio para baixo, perfusão e ventilação ficam no lado bom." }
+  ],
+  intermediario: [
+    { q: "pH 7,30, PaCO₂ 60, HCO₃ 26. Qual o distúrbio?", o: ["Acidose respiratória aguda", "Acidose respiratória crônica", "Acidose metabólica", "Alcalose respiratória"], c: 0, e: "PaCO₂ alta com bicarbonato quase normal: ainda sem compensação renal." },
+    { q: "Indicação de VNI com melhor evidência:", o: ["DPOC exacerbado com acidose respiratória", "Rebaixamento com vômitos", "Parada cardiorrespiratória", "Pneumotórax não drenado"], c: 0, e: "É a indicação clássica, com redução de intubação e mortalidade." },
+    { q: "Qual é contraindicação para VNI?", o: ["Incapacidade de proteger a via aérea", "FR de 28 irpm", "SpO₂ de 89%", "PaCO₂ de 55"], c: 0, e: "Rebaixamento e risco de aspiração contraindicam VNI." },
+    { q: "No DPOC, o EPAP serve principalmente para:", o: ["Contrabalançar a auto-PEEP", "Aumentar o volume corrente", "Reduzir a FiO₂", "Corrigir acidose metabólica"], c: 0, e: "Reduz o esforço para disparar o ciclo." },
+    { q: "Pico alto com platô normal no VCV sugere:", o: ["Aumento de resistência", "Queda de complacência", "Pneumotórax", "Vazamento no circuito"], c: 0, e: "Pico menos platô reflete o componente resistivo." },
+    { q: "Índice de respiração rápida e superficial que favorece o sucesso:", o: ["Menor que 105", "Maior que 105", "Maior que 150", "Exatamente 80"], c: 0, e: "f/VT abaixo de 105 associa-se a sucesso no desmame." },
+    { q: "Duração recomendada do teste de respiração espontânea:", o: ["30 a 120 minutos", "5 minutos", "6 horas", "24 horas"], c: 0, e: "Entre 30 e 120 minutos em PSV baixa ou tubo T." },
+    { q: "Qual sinal indica falha no TRE?", o: ["FR maior que 35 sustentada", "FR de 22", "SpO₂ de 94%", "FC de 95"], c: 0, e: "Taquipneia acima de 35 é critério clássico de falha." },
+    { q: "O cuff leak test avalia:", o: ["Risco de edema laríngeo pós-extubação", "Força muscular inspiratória", "Complacência pulmonar", "Drive respiratório"], c: 0, e: "Vazamento baixo sugere risco de estridor." },
+    { q: "Como medir a auto-PEEP?", o: ["Pausa expiratória", "Pausa inspiratória", "Pressão de pico", "Manovacuometria"], c: 0, e: "A pausa ao fim da expiração revela a PEEP intrínseca." },
+    { q: "Alcalose pós-hipercápnica acontece quando:", o: ["A PaCO₂ do retentor é normalizada rápido", "Se usa PEEP alta", "Se aumenta a FiO₂", "O paciente hiperventila sozinho"], c: 0, e: "O bicarbonato compensatório fica sobrando." },
+    { q: "Um benefício do cateter nasal de alto fluxo:", o: ["Lavagem do espaço morto com FiO₂ alta", "Ventilação invasiva", "Substituir sempre a intubação", "FiO₂ máxima de 40%"], c: 0, e: "Fluxo alto aquecido gera lavagem do espaço morto e leve PEEP." }
+  ],
+  especialista: [
+    { q: "Peso predito de um homem com 180 cm:", o: ["Cerca de 75 kg", "Cerca de 68 kg", "Cerca de 82 kg", "Cerca de 90 kg"], c: 0, e: "50 + 0,91 × (180 − 152,4) ≈ 75 kg." },
+    { q: "Driving pressure alvo na SDRA:", o: ["Até 15 cmH₂O", "Até 25 cmH₂O", "Até 30 cmH₂O", "Até 5 cmH₂O"], c: 0, e: "Valores acima de 15 associam-se a maior mortalidade." },
+    { q: "P/F de 180 com PEEP ≥ 5 classifica a SDRA como:", o: ["Moderada", "Leve", "Grave", "Não é SDRA"], c: 0, e: "Berlim: leve 200–300, moderada 100–200, grave ≤ 100." },
+    { q: "Duração das sessões de prona no PROSEVA:", o: ["Pelo menos 16 horas", "4 horas", "1 hora", "8 horas"], c: 0, e: "Sessões longas, de no mínimo 16 horas consecutivas." },
+    { q: "Complacência estática é calculada por:", o: ["VC ÷ (Platô − PEEP)", "VC ÷ (Pico − PEEP)", "(Pico − Platô) ÷ fluxo", "VC × FR"], c: 0, e: "Usa o platô, que reflete só o componente elástico." },
+    { q: "Resistência de vias aéreas é calculada por:", o: ["(Pico − Platô) ÷ fluxo", "VC ÷ (Platô − PEEP)", "Platô − PEEP", "Pico ÷ FR"], c: 0, e: "A diferença pico-platô dividida pelo fluxo inspiratório." },
+    { q: "Na hipercapnia permissiva, costuma-se tolerar pH até cerca de:", o: ["7,20", "7,35", "7,00", "6,90"], c: 0, e: "Aceita-se pH em torno de 7,20 para preservar a proteção pulmonar." },
+    { q: "Paciente faz esforço e o ventilador não dispara. Qual assincronia?", o: ["Esforço ineficaz", "Duplo disparo", "Autodisparo", "Ciclagem precoce"], c: 0, e: "Comum com auto-PEEP e sensibilidade inadequada." },
+    { q: "Causa frequente de autodisparo:", o: ["Vazamento ou sensibilidade excessiva", "Auto-PEEP elevada", "Sedação profunda", "Fluxo inspiratório baixo"], c: 0, e: "O ventilador interpreta o vazamento como esforço." },
+    { q: "Ausência de deslizamento pleural com ponto pulmonar no ultrassom sugere:", o: ["Pneumotórax", "Derrame pleural", "Consolidação", "Edema pulmonar"], c: 0, e: "O ponto pulmonar é praticamente específico de pneumotórax." },
+    { q: "MRC abaixo de 48 indica:", o: ["Fraqueza adquirida na UTI", "Força normal", "Fadiga diafragmática isolada", "Lesão medular"], c: 0, e: "Soma MRC < 48/60 define fraqueza adquirida na UTI." },
+    { q: "Desmame prolongado, pela classificação de Boles:", o: ["Mais de 3 TREs ou mais de 7 dias", "Sucesso no primeiro TRE", "Até 2 TREs", "Qualquer falha"], c: 0, e: "Simples, difícil (até 3 TREs ou 7 dias) e prolongado (além disso)." }
+  ]
+};
+Object.assign(window.FALAS_FIXAS, {
+  "fx-alarme": "Atenção! Intercorrência no leito. Decida rápido.",
+  "fx-raiox": "Raio-X do plantão. Seis perguntas, pouco tempo. Valendo!",
+  "fx-12h": "Plantão de doze horas. Três vidas, perguntas cada vez mais rápidas. Boa sorte!",
+  "fx-certo": "Isso!",
+  "fx-errado": "Não foi dessa vez."
+});
+
 /* Roteiro de narração de cada item (mesmos ids usados pelos áudios gravados). */
 window.ROTEIRO = function () {
   const out = {};
@@ -469,6 +522,7 @@ window.ROTEIRO = function () {
       out[`${j.id}-${i}-gabarito`] = `Resposta-modelo. ${c.gabarito}`;
     });
   });
+  Object.keys(window.RAPIDAS).forEach(n => window.RAPIDAS[n].forEach((q, k) => { out[`q-${n}-${k}`] = q.q; }));
   Object.assign(out, window.FALAS_FIXAS);
   Object.keys(out).forEach(k => { out[k] = window.FALAR(out[k]); });
   return out;

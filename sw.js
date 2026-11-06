@@ -1,6 +1,6 @@
 // Cache simples: abre offline e busca atualização quando há rede.
-const CACHE = "plantao-fisio-v3";
-const FILES = ["./", "index.html", "cases.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-180.png"];
+const CACHE = "plantao-fisio-v4";
+const FILES = ["./", "index.html", "cases.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-180.png", "splash.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

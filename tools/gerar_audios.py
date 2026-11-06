@@ -3,7 +3,8 @@ Só regrava o que mudou: o nome do arquivo leva um hash do texto e da voz."""
 import asyncio, hashlib, json, os, sys
 import edge_tts
 
-VOZES = ["pt-BR-ThalitaMultilingualNeural", "pt-BR-FranciscaNeural"]
+# Voz monolíngue pt-BR: a "Multilingual" troca de idioma no meio da frase e soa espanhol.
+VOZES = ["pt-BR-FranciscaNeural", "pt-BR-AntonioNeural"]
 RATE = "+4%"
 PASTA = "audio"
 

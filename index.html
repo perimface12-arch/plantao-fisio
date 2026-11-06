@@ -33,6 +33,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--fg);font:15.5px/1.55 var(--body);overscroll-behavior:none;-webkit-font-smoothing:antialiased}
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
@@ -241,7 +242,51 @@ p{margin:0}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;background:rgba(16,35,42,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,200,87,.5);color:var(--fg);padding:11px 16px;border-radius:16px;font-weight:600;font-size:14px;display:flex;gap:8px;align-items:center;max-width:90%;box-shadow:var(--shadow);animation:drop .3s cubic-bezier(.2,.8,.2,1)}
 @keyframes drop{from{transform:translate(-50%,-20px);opacity:0}}
 canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* jogo: estrelas, bloqueios, faixa de ECG, perguntas rápidas */
+.stars{display:inline-flex;gap:1px;vertical-align:-3px}
+.stars svg{width:16px;height:16px}
+.verdict .stars svg{width:22px;height:22px}
+.strip{display:block;width:100%;height:44px;margin-top:2px}
+.player .strip{height:40px;margin:-4px 0 -6px}
+.level.locked{filter:saturate(.25);opacity:.62}
+.level.locked .go{background:rgba(255,255,255,.1);color:var(--muted);padding:9px 11px}
+.level.locked .go svg{width:16px;height:16px}
+.level.doze{background:linear-gradient(160deg,rgba(110,139,255,.2),rgba(56,214,245,.06) 60%);border-color:rgba(110,139,255,.35)}
+.level.doze .lvicon svg{width:26px;height:26px}
+.bipe{display:inline-flex;align-items:center;gap:4px;font:500 10px/1 var(--mono);letter-spacing:.1em;color:var(--dim);padding:4px 7px;border-radius:99px;border:1px solid rgba(255,255,255,.08)}
+.bipe svg{width:13px;height:13px}
+.bipe[aria-pressed="true"]{color:var(--hr);border-color:rgba(75,227,138,.4)}
+.qz{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;background:rgba(2,6,8,.78);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:fade .2s}
+.qz.out{opacity:0;transition:opacity .2s}
+.qz-in{width:100%;max-width:560px;max-height:96%;overflow:auto;display:grid;gap:14px;background:linear-gradient(180deg,#112830,#0A171B);border:1px solid var(--stroke);border-bottom:0;border-radius:28px 28px 0 0;
+  padding:20px max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));animation:up .32s cubic-bezier(.2,.8,.2,1)}
+.qz.alarme{background:rgba(40,4,8,.72);animation:fade .2s, flash .9s 3}
+.qz.alarme .qz-in{border-color:rgba(255,107,107,.5);box-shadow:0 -10px 60px -10px rgba(255,107,107,.45)}
+@keyframes flash{50%{background:rgba(120,10,20,.6)}}
+.qz-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.qz-tag{display:inline-flex;align-items:center;gap:8px;font:500 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.qz.alarme .qz-tag{color:var(--bad)}
+.siren{width:10px;height:10px;border-radius:50%;background:var(--bad);box-shadow:0 0 12px var(--bad);animation:blink .5s infinite}
+.qz-count{font:700 15px/1 var(--num);color:var(--xp);letter-spacing:.04em}
+.qz-timer{position:relative;height:10px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.qz-timer i{position:absolute;inset:0 auto 0 0;width:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.qz-timer span{position:absolute;right:6px;top:-1px;font:700 10px/12px var(--num);color:#fff;mix-blend-mode:difference}
+.qz.urgente .qz-timer i{background:linear-gradient(90deg,#FF7A7A,#FF4D6D)}
+.qz h2{font-size:20px;line-height:1.3;letter-spacing:-.01em}
+.qz-opts{display:grid;gap:9px}
+.qz-opts button{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:center;text-align:left;padding:13px 14px;border-radius:16px;background:var(--glass);border:1px solid var(--stroke);font-size:15px;font-weight:600;transition:transform .12s,background .2s,border-color .2s}
+.qz-opts button:active{transform:scale(.98)}
+.qz-opts button b{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.08);font:700 15px/1 var(--num)}
+.qz-opts button.ok{background:rgba(75,227,138,.16);border-color:var(--ok)}
+.qz-opts button.ok b{background:var(--ok);color:#06201A}
+.qz-opts button.bad{background:rgba(255,107,107,.16);border-color:var(--bad);animation:shake .35s}
+.qz-opts button.bad b{background:var(--bad);color:#2A0505}
+.qz-opts button:disabled{cursor:default}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.qz-exp{font-size:14.5px;line-height:1.55;color:#D7E6E3;background:rgba(255,255,255,.05);border-radius:14px;padding:12px 14px}
+.jhero .row{gap:8px}
+@media (prefers-reduced-motion:reduce){.screen>*{animation:none}}
 </style>
 </head>
 <body>
@@ -249,6 +294,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
 <canvas id="confetti" hidden></canvas>
 
 <script src="cases.js"></script>
+<script src="splash.js"></script>
 <script>
 "use strict";
 /* ---------- utilidades ---------- */
@@ -283,6 +329,7 @@ const BADGES = [
   { id: "especialista", nome: "Guardiã do pulmão", desc: "Conclua a jornada Especialista", svg: BADGE_SVG("#FF7E7E", "M16 10v11M16 13c-2-2-5-1-5 3s1 4 5 4M16 13c2-2 5-1 5 3s-1 4-5 4") },
   { id: "impecavel", nome: "Plantão impecável", desc: "Conclua uma jornada sem perder vida", svg: BADGE_SVG("#F6C453", "M16 9l2 4.3 4.6.5-3.4 3.1 1 4.6-4.2-2.4-4.2 2.4 1-4.6-3.4-3.1 4.6-.5z") },
   { id: "chamas", nome: "Em chamas", desc: "5 acertos seguidos", svg: BADGE_SVG("#F4B13D", "M16 22c-3 0-5-2-5-4.5 0-3 3-4 3-7 2 1 3 3 3 4 1-1 1-2 1-3 2 1.5 3 3.5 3 5.5 0 3-2 5-5 5z") },
+  { id: "ferro", nome: "Plantonista de ferro", desc: "Faça 24 pontos no Plantão de 12h", svg: BADGE_SVG("#6E8BFF", "M11 13h9v3a4.5 4.5 0 0 1-9 0zM20 14h1.2a1.6 1.6 0 0 1 0 3.2H20M13.5 10.5c0-1 1-1.2 1-2.2M17 10.5c0-1 1-1.2 1-2.2") },
   { id: "deprimeira", nome: "De primeira", desc: "10 acertos de primeira, sem dica", svg: BADGE_SVG("#B79CFF", "M16 9v14M12 13l4-4 4 4") }
 ];
 const RANKS = [
@@ -292,8 +339,8 @@ const RANKS = [
 
 /* ---------- estado ---------- */
 const KEY = "plantao-fisio-v1";
-const blank = () => ({ nome: "", xp: 0, acertos: 0, deprimeira: 0, comboMax: 0, badges: [], prog: {}, hearts: {}, concluidas: {}, perdeuVida: {},
-  cfg: { apiKey: "", model: "claude-sonnet-5-5", rate: 1, voice: "", autoVoz: true, vozGravada: true } });
+const blank = () => ({ stars: {}, raiox: {}, rec12: 0, nome: "", xp: 0, acertos: 0, deprimeira: 0, comboMax: 0, badges: [], prog: {}, hearts: {}, concluidas: {}, perdeuVida: {},
+  cfg: { apiKey: "", model: "claude-sonnet-5-5", rate: 1, voice: "", autoVoz: true, vozGravada: true, livre: false, bipe: false } });
 let S;
 try { S = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || "{}")); S.cfg = Object.assign(blank().cfg, S.cfg || {}); } catch (e) { S = blank(); }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
@@ -313,8 +360,9 @@ const heartsOf = id => S.hearts[id] ?? 3;
 /* ---------- voz: narração ---------- */
 // Áudios gravados com voz neural (pasta audio/, gerados pelo GitHub Actions).
 // Quando não houver gravação, usa a melhor voz em português do aparelho.
-let AUDIOS = {};
-fetch("audio/index.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(d => { if (d && d.arquivos) AUDIOS = d.arquivos; }).catch(() => {});
+let AUDIOS = {}, AUDIOS_OK = false;
+const audiosProntos = fetch("audio/index.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null)
+  .then(d => { if (d && d.arquivos) AUDIOS = d.arquivos; }).catch(() => {}).finally(() => { AUDIOS_OK = true; });
 const ROT = window.ROTEIRO();
 const TTS = {
   ok: "speechSynthesis" in window,
@@ -330,6 +378,8 @@ const TTS = {
   // id: chave do roteiro gravado; text: texto livre (feedback da IA)
   say(id, text, onEnd) {
     this.stop();
+    // espera o índice de áudios gravados para não cair na voz do aparelho sem necessidade
+    if (!AUDIOS_OK && id) { const tok = this.tok; Promise.race([audiosProntos, new Promise(r => setTimeout(r, 2500))]).then(() => { AUDIOS_OK = true; if (tok === this.tok) this.say(id, text, onEnd); }); return; }
     const file = id && AUDIOS[id];
     if (file && S.cfg.vozGravada !== false) {
       const a = new Audio("audio/" + file);
@@ -357,8 +407,9 @@ const TTS = {
     u.onerror = () => { if (this.speaking) this._next(); };
     speechSynthesis.speak(u);
   },
+  tok: 0,
   stop() {
-    this.speaking = false; this.queue = []; this.onEnd = null;
+    this.tok++; this.speaking = false; this.queue = []; this.onEnd = null;
     if (this.audio) { const a = this.audio; this.audio = null; try { a.pause(); } catch (e) {} }
     try { this.ok && speechSynthesis.cancel(); } catch (e) {}
   }
@@ -507,6 +558,8 @@ function render() {
   else if (view.name === "caso") renderCaso();
   else if (view.name === "fim") renderFim();
   else if (view.name === "gameover") renderGameOver();
+  else if (view.name === "doze") renderDoze();
+  else if (view.name === "dozefim") renderDozeFim();
 }
 
 const LVICON = {
@@ -521,6 +574,7 @@ const SMALL = {
   q: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.9-1.1 1.6v.5M12 17h.01"/></svg>`,
   phone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 15V8M9 11l3 3 3-3"/></svg>`
 };
+const CAFE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h13v4a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6zM17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3c0 1.5-1 1.5-1 3M12 3c0 1.5-1 1.5-1 3"/></svg>`;
 const corDe = id => id === "iniciante" ? "var(--hr)" : id === "intermediario" ? "var(--fr)" : "var(--pa)";
 
 function renderHome() {
@@ -550,35 +604,48 @@ function renderHome() {
           <div class="next"><b style="color:var(--xp)">${S.xp.toLocaleString("pt-BR")} XP</b> · ${r.next ? `faltam ${(r.next[0] - S.xp).toLocaleString("pt-BR")} para ${r.next[1]}` : "nível máximo"}</div>
         </div>
       </div>
+      <canvas class="strip" id="strip" aria-hidden="true"></canvas>
       <div class="stats">
         <div class="stat">${SMALL.case}<b>${S.acertos}</b><span>casos resolvidos</span></div>
         <div class="stat">${SMALL.flame}<b>${S.comboMax}</b><span>maior sequência</span></div>
         <div class="stat">${SMALL.trophy}<b>${S.badges.length}/${BADGES.length}</b><span>conquistas</span></div>
       </div>
     </div>
-    <div class="sec"><h3>Escolha seu plantão</h3><span>3 níveis · 18 casos</span></div>
+    <div class="sec"><h3>Escolha seu plantão</h3><span>${J.reduce((a, j) => a + estrelasDe(j.id), 0)}/54 estrelas</span></div>
     <div class="levels">${J.map((j, i) => {
       const p = S.prog[j.id] || 0, done = S.concluidas[j.id];
       const feitos = done && !p ? j.casos.length : p;
       const st = p > 0 && p < j.casos.length ? "Continuar" : done ? "Refazer" : "Iniciar";
-      return `<button class="level" data-l="${j.id}">
+      const ok = aberto(i);
+      return `<button class="level ${ok ? "" : "locked"}" data-l="${j.id}" data-i="${i}">
         <div class="level-head"><span class="lvicon">${LVICON[j.id]}</span>
           <span class="t"><span class="label" style="color:var(--c)">${j.nivel}</span><span class="pips" aria-label="Dificuldade ${i + 1} de 3">${[0, 1, 2].map(k => `<i class="${k <= i ? "on" : ""}"></i>`).join("")}</span></span></div>
         <h2>${j.titulo}</h2>
-        <p>${esc(j.problema)}</p>
+        <p>${ok ? esc(j.problema) : `Conclua <b>${esc(J[i - 1].titulo)}</b> para liberar este plantão.`}</p>
         <div class="level-foot">
-          <div class="prog"><div class="bar" style="--c:var(--c)"><i style="width:${Math.round(feitos / j.casos.length * 100)}%"></i></div><small>${feitos}/${j.casos.length} casos · ${j.xp} XP cada</small></div>
-          <span class="go">${st}${ICON.send}</span>
+          <div class="prog"><div class="bar" style="--c:var(--c)"><i style="width:${Math.round(feitos / j.casos.length * 100)}%"></i></div><small>${feitos}/${j.casos.length} casos · ${starsHTML(1, 1)} ${estrelasDe(j.id)}/18${S.raiox[j.id] != null ? ` · Raio-X ${S.raiox[j.id]}/6` : ""}</small></div>
+          <span class="go">${ok ? st + ICON.send : ICON.lock}</span>
         </div>
       </button>`;
-    }).join("")}</div>
+    }).join("")}
+      <button class="level doze ${dozeAberto() ? "" : "locked"}" data-l="doze" style="--c:var(--accent2)">
+        <div class="level-head"><span class="lvicon">${SMALL.flame.replace('class="ico"', "").replace("#FFB547", "#9EB0FF")}</span>
+          <span class="t"><span class="label" style="color:var(--c)">Desafio final</span><span class="pips">${[0, 1, 2, 3].map(() => `<i class="on"></i>`).join("")}</span></span></div>
+        <h2>Plantão de 12 horas</h2>
+        <p>${dozeAberto() ? "36 perguntas rápidas dos três setores, 3 vidas e tempo cada vez menor. Bata o seu recorde." : "Libera depois de concluir as três jornadas."}</p>
+        <div class="level-foot"><div class="prog"><small>Recorde: <b style="color:var(--xp)">${S.rec12 || 0} pontos</b></small></div><span class="go">${dozeAberto() ? "Jogar" + ICON.send : ICON.lock}</span></div>
+      </button>
+    </div>
     <div class="sec"><h3>Conquistas</h3><span>${S.badges.length} de ${BADGES.length}</span></div>
     <div class="badges">${BADGES.map(b => `<div class="badge ${S.badges.includes(b.id) ? "" : "off"}" title="${esc(b.desc)}">${b.svg}<b>${b.nome}</b></div>`).join("")}</div>
     <div class="install glass">${SMALL.phone}<span>No celular, toque em <b>Adicionar à tela inicial</b> para abrir como app, em tela cheia.</span></div>
   </div>`;
   setDock("");
   $("#cfg").onclick = openSettings;
+  startWave($("#strip"), 72, 14, { ch: 1, bg: "transparent", color: "#4BE38A", speed: 60 });
   app.querySelectorAll(".level").forEach(b => b.onclick = () => {
+    if (b.classList.contains("locked")) { toast(b.dataset.l === "doze" ? "Conclua as três jornadas para liberar" : "Conclua o nível anterior para liberar"); if (navigator.vibrate) navigator.vibrate(60); return; }
+    if (b.dataset.l === "doze") { go({ name: "doze" }); return; }
     const j = J.find(x => x.id === b.dataset.l);
     if ((S.prog[j.id] || 0) >= j.casos.length) { S.prog[j.id] = 0; S.hearts[j.id] = 3; S.perdeuVida[j.id] = false; save(); }
     go({ name: "jornada", jid: j.id });
@@ -593,24 +660,30 @@ function renderJornada() {
   app.innerHTML = `<div class="screen" style="--c:${corDe(j.id)}">
     <div class="backrow"><button class="iconbtn" id="back" aria-label="Voltar">${ICON.back}</button><span class="mid label">${j.setor}</span>${heartsHTML(j.id)}</div>
     <div class="jhero">
-      <svg class="wavebg" viewBox="0 0 200 60" aria-hidden="true"><path d="M0 35h50l8-20 10 38 10-28 6 10h116" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--c)"/></svg>
-      <span class="label" style="color:var(--c)">${j.nivel}</span>
+      <span class="label" style="color:var(--c)">${j.nivel} · plantão 19:00 → 07:00</span>
       <h1>${j.titulo}</h1>
       <p>${esc(j.problema)}</p>
-      <button class="chipbtn" id="ouvir" aria-pressed="false">${ICON.speaker}<span>Ouvir briefing</span></button>
+      <div class="row"><button class="chipbtn" id="ouvir" aria-pressed="false">${ICON.speaker}<span>Ouvir briefing</span></button>
+      ${heartsOf(j.id) < 3 ? `<button class="chipbtn" id="cafe">${CAFE}<span>Café: +1 vida (150 XP)</span></button>` : ""}</div>
+      <canvas class="strip" id="strip" aria-hidden="true"></canvas>
     </div>
     <div class="sec"><h3>Sua jornada</h3><span>${p}/${j.casos.length} concluídos</span></div>
     <div class="path">${j.casos.map((c, i) => {
       const cls = i < p ? "done" : i === p ? "cur" : "lock";
       return `<button class="node ${cls}" data-i="${i}" ${i > p ? "disabled" : ""}>
         <span class="dot">${i < p ? ICON.check("#06201A").replace("<svg", '<svg width="22" height="22"') : i > p ? ICON.lock : i + 1}</span>
-        <span><b>${esc(c.tag)}</b><span>${esc(c.leito)} · ${esc(c.paciente)}</span></span>
+        <span><b>${esc(c.tag)} ${i < p && (S.stars[j.id] || [])[i] ? starsHTML(S.stars[j.id][i]) : ""}</b><span>${hora(i)} · ${esc(c.leito)} · ${esc(c.paciente)}</span></span>
         ${c.chefe ? `<span class="boss">CHEFE</span>` : i === p ? `<span class="play">${ICON.send}</span>` : ""}
       </button>`;
     }).join("")}</div>
   </div>`;
   setDock(`<button class="btn primary" id="start">${ICON.send}${p === 0 ? "Começar plantão" : "Ir para o caso " + (p + 1)}</button>`);
   $("#back").onclick = () => go({ name: "home" });
+  startWave($("#strip"), 84, 16, { ch: 1, bg: "transparent", color: getComputedStyle(document.documentElement).getPropertyValue(j.id === "iniciante" ? "--hr" : j.id === "intermediario" ? "--fr" : "--pa").trim() });
+  const cf = $("#cafe"); if (cf) cf.onclick = () => {
+    if (S.xp < 150) { toast("Você precisa de 150 XP para o café"); return; }
+    S.xp -= 150; S.hearts[j.id] = Math.min(3, heartsOf(j.id) + 1); save(); somAcerto(); toast("Café tomado: +1 vida"); stopWave(); renderJornada();
+  };
   const ob = $("#ouvir");
   ob.onclick = () => {
     if (TTS.speaking) { TTS.stop(); ob.setAttribute("aria-pressed", "false"); return; }
@@ -626,12 +699,16 @@ function renderJornada() {
 }
 
 /* ---------- monitor: ondas simuladas no ritmo dos sinais vitais do caso ---------- */
-let raf = 0, vitTimer = 0;
-function stopWave() { cancelAnimationFrame(raf); raf = 0; clearInterval(vitTimer); vitTimer = 0; }
-function startWave(cv, fc, fr) {
+// Sempre animado (é o coração da experiência), mesmo com "reduzir movimento" ligado no aparelho.
+const LOOPS = []; let vitTimer = 0;
+function stopWave() { LOOPS.splice(0).forEach(L => { L.alive = false; cancelAnimationFrame(L.raf); }); clearInterval(vitTimer); vitTimer = 0; }
+function startWave(cv, fc, fr, opt = {}) {
+  if (!cv) return;
+  const L = { alive: true, raf: 0 }; LOOPS.push(L);
+  const ch = opt.ch || 3, transp = opt.bg === "transparent", BG = transp ? null : (opt.bg || "#030809");
   const ctx = cv.getContext("2d"), dpr = Math.min(2, window.devicePixelRatio || 1);
-  const W = cv.clientWidth, H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr; ctx.scale(dpr, dpr);
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const W = cv.clientWidth || 320, H = cv.clientHeight || 120;
+  cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const beat = 60 / (fc || 80), breath = 60 / (fr || 16);
   const ecg = ph => {
     if (ph < .08) return Math.sin(ph / .08 * Math.PI) * .12;
@@ -644,47 +721,45 @@ function startWave(cv, fc, fr) {
     return 0;
   };
   const pleth = ph => Math.max(0, Math.sin(ph * Math.PI * 1.1)) * (ph < .55 ? 1 : .6) + (ph > .55 && ph < .7 ? .12 : 0);
-  const capno = ph => ph < .08 ? ph / .08 : ph < .4 ? 1 + (ph - .08) * .15 : ph < .48 ? (1.05) * (1 - (ph - .4) / .08) : 0; // capnografia
-  const rows = [H / 3, H * 2 / 3, H];
-  const amp = [H * .11, H * .1, H * .1];
-  const cols = ["#4BE38A", "#38D6F5", "#FFD34E"];
+  const capno = ph => ph < .08 ? ph / .08 : ph < .4 ? 1 + (ph - .08) * .15 : ph < .48 ? 1.05 * (1 - (ph - .4) / .08) : 0;
+  const cols = ch === 1 ? [opt.color || "#4BE38A"] : ["#4BE38A", "#38D6F5", "#FFD34E"];
   const fns = [t => ecg((t % beat) / beat), t => pleth((((t - .18) % beat) + beat) % beat / beat), t => capno((t % breath) / breath)];
-  const base = r => rows[r] - H * .06;
-  const pxPerSec = 64;
-  const grid = () => { ctx.fillStyle = "#030809"; ctx.fillRect(0, 0, W, H); ctx.strokeStyle = "rgba(56,214,245,.05)"; ctx.lineWidth = 1;
-    for (let x = 0; x < W; x += 16) { ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, H); ctx.stroke(); }
-    for (let y = 0; y < H; y += 16) { ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(W, y + .5); ctx.stroke(); } };
-  grid();
-  if (reduce) {
-    for (let r = 0; r < 3; r++) { ctx.strokeStyle = cols[r]; ctx.lineWidth = 1.8; ctx.beginPath();
-      for (let x = 0; x < W; x++) { const y = base(r) - fns[r](x / pxPerSec) * amp[r] * (r ? 1 : 2.2); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); }
-    return;
-  }
-  let x = 0, last = performance.now(), t = 0, prev = [base(0), base(1), base(2)];
-  ctx.lineJoin = "round"; ctx.lineCap = "round";
-  const step = now => {
-    const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
-    const dx = dt * pxPerSec;
-    // apaga à frente do traço, como no monitor real
-    ctx.fillStyle = "#030809"; ctx.fillRect(x + 1, 0, 14, H);
-    ctx.strokeStyle = "rgba(56,214,245,.05)"; ctx.lineWidth = 1;
-    for (let gx = Math.ceil((x + 1) / 16) * 16; gx < x + 15; gx += 16) { ctx.beginPath(); ctx.moveTo(gx + .5, 0); ctx.lineTo(gx + .5, H); ctx.stroke(); }
-    for (let gy = 0; gy < H; gy += 16) { ctx.beginPath(); ctx.moveTo(x + 1, gy + .5); ctx.lineTo(x + 15, gy + .5); ctx.stroke(); }
-    ctx.lineWidth = 2;
-    for (let r = 0; r < 3; r++) {
-      const y = base(r) - fns[r](t) * amp[r] * (r ? 1 : 2.2);
-      ctx.strokeStyle = cols[r]; ctx.shadowColor = cols[r]; ctx.shadowBlur = 6;
-      ctx.beginPath(); ctx.moveTo(x, prev[r]); ctx.lineTo(x + dx, y); ctx.stroke(); prev[r] = y;
-    }
-    ctx.shadowBlur = 0;
-    x += dx; if (x > W) { x = 0; }
-    raf = requestAnimationFrame(step);
+  const base = r => ch === 1 ? H * .7 : (H * (r + 1) / 3) - H * .06;
+  const amp = r => ch === 1 ? H * .55 : r === 0 ? H * .24 : H * .1;
+  const pxPerSec = opt.speed || 70;
+  const erase = (x0, w) => { if (transp) ctx.clearRect(x0, 0, w, H); else { ctx.fillStyle = BG; ctx.fillRect(x0, 0, w, H); } };
+  const gridCol = (x0, x1) => {
+    if (transp) return;
+    ctx.strokeStyle = "rgba(56,214,245,.06)"; ctx.lineWidth = 1;
+    for (let gx = Math.ceil(x0 / 16) * 16; gx < x1; gx += 16) { ctx.beginPath(); ctx.moveTo(gx + .5, 0); ctx.lineTo(gx + .5, H); ctx.stroke(); }
+    for (let gy = 0; gy < H; gy += 16) { ctx.beginPath(); ctx.moveTo(x0, gy + .5); ctx.lineTo(x1, gy + .5); ctx.stroke(); }
   };
-  raf = requestAnimationFrame(step);
+  erase(0, W); gridCol(0, W);
+  let x = 0, last = performance.now(), t = 0, prev = cols.map((_, r) => base(r)), lastPh = 0;
+  const step = now => {
+    if (!L.alive) return;
+    const dt = Math.min(.06, (now - last) / 1000); last = now; t += dt;
+    const dx = dt * pxPerSec;
+    erase(x + 1, 18); gridCol(x + 1, x + 19);
+    for (let r = 0; r < cols.length; r++) {
+      const y = base(r) - fns[r](t) * amp(r);
+      ctx.lineCap = "round";
+      ctx.strokeStyle = cols[r];
+      ctx.globalAlpha = .22; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(x, prev[r]); ctx.lineTo(x + dx, y); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, prev[r]); ctx.lineTo(x + dx, y); ctx.stroke();
+      prev[r] = y;
+    }
+    const ph = (t % beat) / beat;
+    if (opt.bipe && S.cfg.bipe && lastPh < .17 && ph >= .17) beep(1046, .05, .045);
+    lastPh = ph;
+    x += dx; if (x > W) x = 0;
+    L.raf = requestAnimationFrame(step);
+  };
+  L.raf = requestAnimationFrame(step);
 }
 // pequenas oscilações nos números, como num monitor de verdade
 function oscilarVitais(v) {
-  const fc = $("#v-fc"), sp = $("#v-sp"); if (!fc || !sp || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const fc = $("#v-fc"), sp = $("#v-sp"); if (!fc || !sp) return;
   const s0 = +v.SpO2;
   vitTimer = setInterval(() => {
     fc.textContent = v.FC + Math.round((Math.random() - .5) * 4);
@@ -701,10 +776,10 @@ function renderCaso() {
   const vit = c.vitais, al = emAlarme(vit);
   app.innerHTML = `<div class="screen" style="--c:${corDe(j.id)}">
     <div class="backrow"><button class="iconbtn" id="back" aria-label="Voltar para a jornada">${ICON.back}</button>
-      <span class="mid label">Caso ${view.i + 1} de ${j.casos.length}${view.revisao ? " · revisão" : ""}</span>
+      <span class="mid label">Caso ${view.i + 1}/${j.casos.length} · ${hora(view.i)}${view.revisao ? " · revisão" : ""}</span>
       <div style="display:flex;align-items:center;gap:8px">${combo >= 2 ? `<span class="combo">x${combo}</span>` : ""}${heartsHTML(j.id)}</div></div>
     <div class="monitor">
-      <div class="mon-head"><span>${esc(c.leito).toUpperCase()}</span><span class="live"><i></i>AO VIVO</span></div>
+      <div class="mon-head"><span>${esc(c.leito).toUpperCase()}</span><span style="display:flex;align-items:center;gap:12px"><button class="bipe" id="bipe" aria-pressed="${S.cfg.bipe ? "true" : "false"}" aria-label="Bipe do monitor">${ICON.speaker}<span>BIPE</span></button><span class="live"><i></i>AO VIVO</span></span></div>
       <div class="waves"><canvas class="wave" id="wave"></canvas>
         <div class="wlabels" aria-hidden="true"><span style="color:var(--hr)">II</span><span style="color:var(--spo2)">PLETH</span><span style="color:var(--fr)">RESP</span></div></div>
       <div class="vitals">
@@ -736,7 +811,8 @@ function renderCaso() {
     </div>
     <p class="note" id="micnote">${STT.ok ? "Toque em Responder, fale com calma e toque de novo para parar." : "Este navegador não transcreve voz aqui. Use o microfone do teclado do celular dentro da caixa de resposta."}</p>
   </div>`;
-  startWave($("#wave"), vit.FC, vit.FR);
+  startWave($("#wave"), vit.FC, vit.FR, { bipe: true });
+  $("#bipe").onclick = e => { S.cfg.bipe = !S.cfg.bipe; save(); window.ac(); e.currentTarget.setAttribute("aria-pressed", S.cfg.bipe ? "true" : "false"); };
   oscilarVitais(vit);
   $("#back").onclick = () => go({ name: "jornada", jid: j.id });
   const ob = $("#ouvir");
@@ -804,7 +880,7 @@ function mostrarResultado(j, c, r) {
   const ok = r.veredito === "correta", parcial = r.veredito === "parcial";
   const color = ok ? "var(--ok)" : parcial ? "var(--warn)" : "var(--bad)";
   const title = ok ? "Correta" : parcial ? "Quase lá" : "Incorreta";
-  let ganho = 0, perdeu = false, novos = [];
+  let ganho = 0, perdeu = false, novos = [], estrelas = 0;
   if (!view.revisao) {
     if (ok) {
       combo++;
@@ -813,6 +889,8 @@ function mostrarResultado(j, c, r) {
       ganho = Math.round(j.xp * mult * (1 + bonus) + (c.chefe ? 50 : 0));
       S.xp += ganho; S.acertos++; S.comboMax = Math.max(S.comboMax, combo);
       if (view.tentativas === 1 && !view.dica && r.fonte !== "revisao") S.deprimeira++;
+      estrelas = r.fonte === "revisao" ? 1 : 1 + (view.tentativas === 1 ? 1 : 0) + (view.dica ? 0 : 1);
+      S.stars[j.id] = S.stars[j.id] || []; S.stars[j.id][view.i] = Math.max(S.stars[j.id][view.i] || 0, estrelas);
       novos = unlock(["primeiro", combo >= 5 && "chamas", S.deprimeira >= 10 && "deprimeira"].filter(Boolean));
     } else {
       combo = 0;
@@ -826,7 +904,7 @@ function mostrarResultado(j, c, r) {
   openSheet(`
     <div class="verdict" style="--vc:${color}">
       <div class="ring"><svg viewBox="0 0 72 72"><circle cx="36" cy="36" r="${R}" fill="none" stroke="#1F3A3F" stroke-width="7"/><circle cx="36" cy="36" r="${R}" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}"/></svg><b>${r.nota}</b></div>
-      <div style="display:grid;gap:6px"><h2>${title}</h2>
+      <div style="display:grid;gap:6px"><h2>${title}</h2>${estrelas ? starsHTML(estrelas) : ""}
         ${ganho ? `<span class="xpgain">+${ganho} XP${combo >= 2 ? ` · sequência x${combo}` : ""}</span>` : perdeu ? `<span class="note" style="color:var(--bad)">−1 vida</span>` : view.revisao ? `<span class="note">Modo revisão: sem XP</span>` : `<span class="note">Sem perder vida. Ajuste e tente de novo.</span>`}
       </div>
     </div>
@@ -880,14 +958,20 @@ function revisarCorrecao(j, c, r, perdeu) {
     }));
   };
 }
-function avancar(j, semXP) {
+async function avancar(j, semXP) {
   if (view.revisao) { go({ name: "jornada", jid: j.id }); return; }
-  S.prog[j.id] = view.i + 1; save();
+  const i = view.i;
+  S.prog[j.id] = i + 1; save();
+  TTS.stop(); stopWave(); setDock("");
   if (S.prog[j.id] >= j.casos.length) {
+    const rx = await rodadaRaioX(j);
     S.concluidas[j.id] = true;
     const nb = unlock([j.id, !S.perdeuVida[j.id] && "impecavel"].filter(Boolean));
-    save(); go({ name: "fim", jid: j.id, novos: nb.map(b => b.id) });
-  } else go({ name: "caso", jid: j.id, i: view.i + 1, dica: false, tentativas: 0 });
+    save(); go({ name: "fim", jid: j.id, raiox: rx, novos: nb.map(b => b.id) });
+  } else {
+    await intercorrencia(j, i);
+    go({ name: "caso", jid: j.id, i: i + 1, dica: false, tentativas: 0 });
+  }
 }
 function unlock(ids) { const n = []; ids.forEach(id => { if (!S.badges.includes(id)) { S.badges.push(id); n.push(BADGES.find(b => b.id === id)); } }); save(); return n; }
 
@@ -900,6 +984,12 @@ function renderFim() {
     <h1>${j.titulo}: concluída</h1>
     <p class="muted">Você resolveu os ${j.casos.length} casos ${S.perdeuVida[j.id] ? "" : "sem perder nenhuma vida "}e soma ${S.xp.toLocaleString("pt-BR")} XP. Patente atual: <b>${rankOf(S.xp).title}</b>.</p>
   </div>
+  <div class="stats">
+    <div class="stat">${SMALL.trophy}<b>${estrelasDe(j.id)}/18</b><span>estrelas</span></div>
+    <div class="stat">${SMALL.case}<b>${view.raiox ?? S.raiox[j.id] ?? 0}/6</b><span>Raio-X</span></div>
+    <div class="stat">${SMALL.flame}<b>${S.comboMax}</b><span>maior sequência</span></div>
+  </div>
+  <p class="note" style="text-align:center">Refaça os casos com menos de 3 estrelas para completar a coleção.</p>
   ${nb.length ? `<div class="label">Conquistas desbloqueadas</div><div class="badges">${nb.map(b => `<div class="badge">${b.svg}<b>${b.nome}</b></div>`).join("")}</div>` : ""}
   </div>`;
   setDock(prox ? `<button class="btn ghost" id="home" style="flex:0 0 auto">Início</button><button class="btn primary" id="next">${ICON.send}Próximo nível: ${prox.nivel}</button>` : `<button class="btn primary" id="home">Voltar ao início</button>`);
@@ -919,6 +1009,152 @@ function renderGameOver() {
   TTS.say("fx-gameover");
   $("#home").onclick = () => { S.prog[j.id] = 0; S.hearts[j.id] = 3; S.perdeuVida[j.id] = false; save(); go({ name: "home" }); };
   $("#again").onclick = () => { S.prog[j.id] = 0; S.hearts[j.id] = 3; S.perdeuVida[j.id] = false; combo = 0; save(); go({ name: "jornada", jid: j.id }); };
+}
+
+/* ---------- som (Web Audio) ---------- */
+let AC = null;
+window.ac = function () { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume(); } catch (e) {} return AC; };
+function beep(f = 880, d = .08, v = .08, t0 = 0, type = "sine") {
+  const a = window.ac(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + t0;
+  o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + .03);
+}
+const somAlarme = () => [0, .2, .4, 1, 1.2, 1.4].forEach(t => beep(988, .15, .09, t, "square"));
+const somAcerto = () => { beep(660, .12, .08); beep(990, .2, .08, .1); };
+const somErro = () => beep(196, .3, .09, 0, "triangle");
+
+/* ---------- estrelas, relógio e utilidades de jogo ---------- */
+const STAR = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z" fill="${on ? "#FFC857" : "rgba(255,255,255,.12)"}"/></svg>`;
+const starsHTML = (n, max = 3) => `<span class="stars" aria-label="${n} de ${max} estrelas">${Array.from({ length: max }, (_, k) => STAR(k < n)).join("")}</span>`;
+const estrelasDe = jid => (S.stars[jid] || []).reduce((a, b) => a + (b || 0), 0);
+const hora = i => String((19 + i * 2) % 24).padStart(2, "0") + ":00";
+const aberto = i => S.cfg.livre || i === 0 || !!S.concluidas[J[i - 1].id];
+const dozeAberto = () => S.cfg.livre || J.every(j => S.concluidas[j.id]);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const k = Math.random() * (i + 1) | 0; [a[i], a[k]] = [a[k], a[i]]; } return a; };
+
+/* ---------- pergunta rápida com cronômetro ---------- */
+function perguntaRapida({ nivel, idx, tempo = 20, titulo = "", alarme = false, contador = "" }) {
+  return new Promise(res => {
+    const q = window.RAPIDAS[nivel][idx];
+    const ordem = shuffle(q.o.map((_, k) => k));
+    const d = document.createElement("div");
+    d.className = "qz" + (alarme ? " alarme" : "");
+    d.innerHTML = `<div class="qz-in" role="dialog" aria-modal="true">
+      <div class="qz-head"><span class="qz-tag">${alarme ? `<i class="siren"></i>` : ""}${esc(titulo)}</span><span class="qz-count">${contador}</span></div>
+      <div class="qz-timer"><i></i><span id="qz-s">${tempo}s</span></div>
+      <h2>${esc(q.q)}</h2>
+      <div class="qz-opts">${ordem.map((k, n) => `<button data-k="${k}"><b>${"ABCD"[n]}</b><span>${esc(q.o[k])}</span></button>`).join("")}</div>
+      <div class="qz-exp" hidden></div>
+      <button class="btn primary qz-go" hidden>${ICON.send}Continuar</button>
+    </div>`;
+    document.body.appendChild(d);
+    if (alarme) { somAlarme(); if (navigator.vibrate) navigator.vibrate([200, 100, 200]); }
+    setTimeout(() => TTS.say(`q-${nivel}-${idx}`), alarme ? 1500 : 150);
+    const bar = d.querySelector(".qz-timer i"), seg = d.querySelector("#qz-s");
+    bar.style.transition = `width ${tempo}s linear`;
+    requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = "0%"; }));
+    let left = tempo, done = false;
+    const tick = setInterval(() => { left--; seg.textContent = Math.max(0, left) + "s"; if (left <= 5) { d.classList.add("urgente"); beep(1200, .04, .04); } }, 1000);
+    const fim = k => {
+      if (done) return; done = true; clearInterval(tick); clearTimeout(to); TTS.stop();
+      const ok = k === q.c;
+      const w = getComputedStyle(bar).width; bar.style.transition = "none"; bar.style.width = w;
+      d.querySelectorAll(".qz-opts button").forEach(b => { b.disabled = true; const kk = +b.dataset.k; if (kk === q.c) b.classList.add("ok"); else if (kk === k) b.classList.add("bad"); });
+      const ex = d.querySelector(".qz-exp"); ex.hidden = false;
+      ex.innerHTML = `<b style="color:${ok ? "var(--ok)" : "var(--bad)"}">${k === null ? "Tempo esgotado." : ok ? "Isso!" : "Não foi dessa vez."}</b> ${esc(q.e)}`;
+      ok ? somAcerto() : somErro();
+      if (navigator.vibrate) navigator.vibrate(ok ? 30 : 140);
+      const go = d.querySelector(".qz-go"); go.hidden = false; go.focus();
+      go.onclick = () => { d.classList.add("out"); setTimeout(() => d.remove(), 220); res(ok); };
+    };
+    const to = setTimeout(() => fim(null), tempo * 1000);
+    d.querySelectorAll(".qz-opts button").forEach(b => b.onclick = () => fim(+b.dataset.k));
+  });
+}
+
+/* intercorrência entre um caso e outro */
+async function intercorrencia(j, i) {
+  const ok = await perguntaRapida({ nivel: j.id, idx: i, tempo: 20, titulo: `Intercorrência · ${hora(i + 1).replace(":00", "h")}`, alarme: true });
+  if (ok) { combo++; const g = 40 + Math.min(20, combo * 4); S.xp += g; S.comboMax = Math.max(S.comboMax, combo); toast(`+${g} XP · intercorrência resolvida`); }
+  else combo = 0;
+  save();
+}
+
+/* rodada Raio-X no fim de cada jornada */
+function rodadaRaioX(j) {
+  return new Promise(res => {
+    openSheet(`<span class="label" style="color:var(--xp)">Rodada final</span>
+      <h2>Raio-X do plantão</h2>
+      <p class="muted">Seis perguntas rápidas de ${esc(j.titulo)}, 15 segundos cada. Cada acerto vale 30 XP, e acertar todas dá bônus de 100 XP.</p>
+      <div class="actions"><button class="btn primary" id="rx-go">${ICON.send}Valendo!</button></div>`, false);
+    TTS.say("fx-raiox");
+    $("#rx-go").onclick = async () => {
+      closeSheet();
+      let n = 0;
+      for (let k = 0; k < 6; k++) {
+        const ok = await perguntaRapida({ nivel: j.id, idx: 5 + k, tempo: 15, titulo: "Raio-X do plantão", contador: `${k + 1}/6` });
+        if (ok) { n++; S.xp += 30; }
+      }
+      if (n === 6) S.xp += 100;
+      S.raiox[j.id] = Math.max(S.raiox[j.id] || 0, n);
+      save(); res(n);
+    };
+  });
+}
+
+/* ---------- modo Plantão de 12h (sobrevivência) ---------- */
+function renderDoze() {
+  app.innerHTML = `<div class="screen" style="--c:var(--accent2)">
+    <div class="backrow"><button class="iconbtn" id="back" aria-label="Voltar">${ICON.back}</button><span class="mid label">Modo sobrevivência</span><span style="width:44px"></span></div>
+    <div class="jhero">
+      <span class="label" style="color:var(--accent2)">Desafio final</span>
+      <h1>Plantão de 12 horas</h1>
+      <p>Todas as perguntas rápidas dos três setores, embaralhadas. Você tem 3 vidas e o tempo de resposta diminui a cada 4 acertos. Até onde você aguenta?</p>
+      <canvas class="strip" id="strip"></canvas>
+    </div>
+    <div class="stats">
+      <div class="stat">${SMALL.trophy}<b>${S.rec12 || 0}</b><span>seu recorde</span></div>
+      <div class="stat">${SMALL.case}<b>36</b><span>perguntas no total</span></div>
+      <div class="stat">${SMALL.flame}<b>20s</b><span>tempo inicial</span></div>
+    </div>
+  </div>`;
+  startWave($("#strip"), 96, 18, { ch: 1, bg: "transparent", color: "#6E8BFF" });
+  setDock(`<button class="btn primary" id="go12">${ICON.send}Começar plantão</button>`);
+  $("#back").onclick = () => go({ name: "home" });
+  $("#go12").onclick = async () => {
+    setDock(""); TTS.say("fx-12h");
+    await new Promise(r => setTimeout(r, 2600));
+    const pool = shuffle(Object.keys(window.RAPIDAS).flatMap(n => window.RAPIDAS[n].map((_, k) => [n, k])));
+    let vidas = 3, pts = 0;
+    for (const [n, k] of pool) {
+      const tempo = Math.max(8, 20 - Math.floor(pts / 4) * 2);
+      const relog = String((19 + Math.floor(pts / 3)) % 24).padStart(2, "0") + "h";
+      const ok = await perguntaRapida({ nivel: n, idx: k, tempo, titulo: `Plantão 12h · ${relog}`, contador: `${pts} pts · ${"♥".repeat(vidas)}${"♡".repeat(3 - vidas)}` });
+      if (ok) { pts++; S.xp += 20; } else if (--vidas <= 0) break;
+    }
+    const recorde = pts > (S.rec12 || 0);
+    S.rec12 = Math.max(S.rec12 || 0, pts);
+    const nb = unlock([pts >= 24 && "ferro"].filter(Boolean));
+    save();
+    go({ name: "dozefim", pts, recorde, vidas, novos: nb.map(b => b.id) });
+  };
+}
+function renderDozeFim() {
+  const nb = (view.novos || []).map(id => BADGES.find(b => b.id === id));
+  app.innerHTML = `<div class="screen"><div class="done-hero">
+    <span class="label" style="color:${view.vidas > 0 ? "var(--xp)" : "var(--bad)"}">${view.vidas > 0 ? "Plantão completo" : "Plantão encerrado"}</span>
+    ${BADGES.find(b => b.id === "ferro").svg.replace("<svg", '<svg class="big"')}
+    <h1>${view.pts} ${view.pts === 1 ? "ponto" : "pontos"}</h1>
+    <p class="muted">${view.recorde ? "Novo recorde pessoal!" : `Seu recorde é ${S.rec12} pontos.`} Cada acerto rendeu 20 XP.</p>
+  </div>
+  ${nb.length ? `<div class="sec"><h3>Conquista desbloqueada</h3></div><div class="badges">${nb.map(b => `<div class="badge">${b.svg}<b>${b.nome}</b></div>`).join("")}</div>` : ""}
+  </div>`;
+  setDock(`<button class="btn ghost" id="home" style="flex:0 0 auto">Início</button><button class="btn primary" id="again">Jogar de novo</button>`);
+  $("#home").onclick = () => go({ name: "home" });
+  $("#again").onclick = () => go({ name: "doze" });
+  if (view.recorde) confetti(true);
 }
 
 /* ---------- sheets, toast, confetti ---------- */
@@ -953,7 +1189,7 @@ function confetti(big) {
 function askName() {
   openSheet(`<h2>Bem-vinda ao plantão</h2>
     <p class="muted">Você vai receber casos de fisioterapia hospitalar narrados em voz, responder falando e receber correção na hora. Três níveis, cada um com uma jornada e um problema para resolver.</p>
-    <div class="field"><label class="label" for="nm">Como quer ser chamada?</label><input id="nm" autocomplete="given-name" placeholder="Seu nome"></div>
+    <div class="field"><label class="label" for="nm">Como quer ser chamada?</label><input id="nm" autocomplete="given-name" placeholder="Seu nome" value="Ana Livia"></div>
     <div class="actions"><button class="btn primary" id="ok">Entrar no plantão</button></div>`, false);
   $("#ok").onclick = () => { S.nome = $("#nm").value.trim().slice(0, 30); save(); closeSheet(); render(); };
 }
@@ -972,6 +1208,8 @@ function openSettings() {
       <span class="note">A voz gravada narra casos, dicas e respostas-modelo. O feedback da IA usa a voz do aparelho.</span></div>
     <div class="field"><label class="label" for="s-rate">Velocidade da voz</label>
       <select id="s-rate">${[[.85, "Calma"], [1, "Normal"], [1.15, "Rápida"], [1.3, "Muito rápida"]].map(([v, l]) => `<option value="${v}" ${S.cfg.rate == v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+    <div class="field"><label class="label" for="s-livre">Níveis</label>
+      <select id="s-livre"><option value="0">Liberar em sequência (modo jogo)</option><option value="1" ${S.cfg.livre ? "selected" : ""}>Liberar todos agora</option></select></div>
     <div class="field"><label class="label" for="s-auto">Narrar caso automaticamente</label>
       <select id="s-auto"><option value="1">Sim</option><option value="0" ${S.cfg.autoVoz ? "" : "selected"}>Não</option></select></div>
     <div class="actions">
@@ -990,12 +1228,13 @@ function openSettings() {
   $("#s-save").onclick = () => {
     S.nome = $("#s-nome").value.trim().slice(0, 30);
     S.cfg.apiKey = $("#s-key").value.trim(); S.cfg.model = $("#s-model").value;
-    setVoz(); S.cfg.autoVoz = $("#s-auto").value === "1";
+    setVoz(); S.cfg.livre = $("#s-livre").value === "1"; S.cfg.autoVoz = $("#s-auto").value === "1";
     save(); closeSheet(); render(); toast(S.cfg.apiKey ? "Salvo · avaliação por IA ativa" : "Salvo");
   };
 }
 
 render();
+if (window.mostrarAbertura) mostrarAbertura();
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
