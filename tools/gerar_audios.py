@@ -8,7 +8,8 @@ RATE = "+4%"
 PASTA = "audio"
 
 async def gravar(texto, voz, caminho):
-    await edge_tts.Communicate(texto, voz, rate=RATE).save(caminho)
+    # tempo limite: sem isso uma conexão travada segura o workflow por horas
+    await asyncio.wait_for(edge_tts.Communicate(texto, voz, rate=RATE).save(caminho), timeout=60)
 
 async def main():
     textos = json.load(open("tools/textos.json", encoding="utf-8"))
@@ -23,7 +24,7 @@ async def main():
             print(f"voz {v} indisponível: {e}", file=sys.stderr)
     if not voz:
         sys.exit("Nenhuma voz neural disponível")
-    print("voz:", voz)
+    print("voz:", voz, flush=True)
     indice = {}
     for k, t in textos.items():
         h = hashlib.sha1((voz + RATE + t).encode()).hexdigest()[:10]
@@ -39,7 +40,7 @@ async def main():
                     await asyncio.sleep(3)
             else:
                 continue
-            print("gravado", nome)
+            print("gravado", nome, flush=True)
         indice[k] = nome
     validos = set(indice.values()) | {"index.json"}
     for f in os.listdir(PASTA):

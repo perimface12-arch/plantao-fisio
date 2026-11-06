@@ -27,7 +27,8 @@ jobs:
       - name: Extrair textos dos casos
         run: node tools/extrair-textos.js > tools/textos.json
       - name: Gravar áudios
-        run: python tools/gerar_audios.py
+        timeout-minutes: 15
+        run: python -u tools/gerar_audios.py
       - name: Salvar no repositório
         run: |
           git config user.name "github-actions[bot]"
